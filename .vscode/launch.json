@@ -1,0 +1,67 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "python": "${command:python.interpreterPath}",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            // step1
+            // "args": [
+            //     "--create_ltr_store"
+            // ]
+            //
+            // step2
+            // "args": [
+            //     "-f",
+            //     "week1/conf/ltr_featureset.json",
+            //     "--upload_featureset"
+            // ]
+            //
+            // step3
+            // "args": [
+            //     "--output_dir",
+            //     "/workspace/ltr_output",
+            //     "--split_input",
+            //     "/workspace/datasets/train.csv",
+            //     "--split_train_rows",
+            //     "1000000",
+            //     "--split_test_rows",
+            //     "1000000"
+            // ]
+            //
+            // step4
+            // "args": [
+            //     "--generate_impressions",
+            //     "--output_dir",
+            //     "/workspace/ltr_output",
+            //     "--train_file",
+            //     "/workspace/ltr_output/train.csv"
+            // ]
+            // step5
+            "args": [
+                "--ltr_terms_field",
+                "sku",
+                "--output_dir",
+                "/workspace/ltr_output",
+                "--create_xgb_training",
+                "-f",
+                "week1/conf/ltr_featureset.json",
+                "--click_model",
+                "heuristic"
+            ]
+        },
+        {
+            "type": "bashdb",
+            "request": "launch",
+            "name": "Bash-Debug (simplest configuration)",
+            "program": "${file}"
+        }
+    ]
+}
