@@ -1,8 +1,8 @@
 usage()
 {
-  echo "Usage: $0 [-s /workspace/search_with_machine_learning_course] [-c {ctr, heuristic, binary}] [ -w week1 ] [ -d ] [ -a /path/to/bbuy/products/train.csv ]  [-t num rows for the test split, default 100000] [-e num test queries to run. Default 200] [-r num rows for the training split, default 1000000] [-y] [-o output dir] [-g RESCORE QUERY WEIGHT] [-m MAIN QUERY WEIGHT] "
-  echo "Example: ./ltr-end-to-end.sh -s ../python/search_ml -w week1_finished  -o /Users/grantingersoll/projects/corise/datasets/ltr/250 -a /Users/grantingersoll/projects/corise/datasets/bbuy/train.csv -y -c quantiles -e 100 -m 0"
-  exit 2
+    echo "Usage: $0 [-s /workspace/search_with_machine_learning_course] [-c {ctr, heuristic, binary}] [ -w week1 ] [ -d ] [ -a /path/to/bbuy/products/train.csv ]  [-t num rows for the test split, default 100000] [-e num test queries to run. Default 200] [-r num rows for the training split, default 1000000] [-y] [-o output dir] [-g RESCORE QUERY WEIGHT] [-m MAIN QUERY WEIGHT] "
+    echo "Example: ./ltr-end-to-end.sh -s ../python/search_ml -w week1_finished  -o /Users/grantingersoll/projects/corise/datasets/ltr/250 -a /Users/grantingersoll/projects/corise/datasets/bbuy/train.csv -y -c quantiles -e 100 -m 0"
+    exit 2
 }
 
 SOURCE_DIR="/workspace/search_with_machine_learning_course"
@@ -19,22 +19,22 @@ MAIN_QUERY_WEIGHT=1
 RESCORE_WEIGHT=2
 while getopts ':s:c:e:g:m:w:o:a:r:t:ydh' c
 do
-  case $c in
-    a) ALL_CLICKS_FILE=$OPTARG ;;
-    c) CLICK_MODEL=$OPTARG ;;
-    d) DOWNSAMPLE="--downsample" ;;
-    e) NUM_TEST_QUERIES=$OPTARG ;;
-    g) RESCORE_WEIGHT=$OPTARG ;;
-    m) MAIN_QUERY_WEIGHT=$OPTARG ;;
-    o) OUTPUT_DIR=$OPTARG ;;
-    r) SPLIT_TRAIN_ROWS=$OPTARG ;;
-    s) SOURCE_DIR=$OPTARG ;;
-    t) SPLIT_TEST_ROWS=$OPTARG ;;
-    w) WEEK=$OPTARG ;;
-    y) SYNTHESIZE="--synthesize" ;;
-    h) usage ;;
-    [?]) usage ;;
-  esac
+    case $c in
+        a) ALL_CLICKS_FILE=$OPTARG ;;
+        c) CLICK_MODEL=$OPTARG ;;
+        d) DOWNSAMPLE="--downsample" ;;
+        e) NUM_TEST_QUERIES=$OPTARG ;;
+        g) RESCORE_WEIGHT=$OPTARG ;;
+        m) MAIN_QUERY_WEIGHT=$OPTARG ;;
+        o) OUTPUT_DIR=$OPTARG ;;
+        r) SPLIT_TRAIN_ROWS=$OPTARG ;;
+        s) SOURCE_DIR=$OPTARG ;;
+        t) SPLIT_TEST_ROWS=$OPTARG ;;
+        w) WEEK=$OPTARG ;;
+        y) SYNTHESIZE="--synthesize" ;;
+        h) usage ;;
+        [?]) usage ;;
+    esac
 done
 shift $((OPTIND -1))
 
@@ -48,51 +48,100 @@ cd $SOURCE_DIR
 mkdir -p $OUTPUT_DIR
 echo "ltr-end-to-end.sh $SOURCE_DIR $WEEK $OUTPUT_DIR $ALL_CLICKS_FILE $SYNTHESIZE $CLICK_MODEL run at "  `date` > $OUTPUT_DIR/meta.txt
 set -x
+
+# NOTE SD: [STEP1] Create a feature store at hostname:port/_ltr/week1
+#   Once this step is done, running `GET _ltr/week1` in opensearch devtool
+#     yields: {"exists" : true}
 python $WEEK/utilities/build_ltr.py --create_ltr_store
+# NOTE SD: Check exit status via `$?`
+#   0 = success; if exist code is not 0,
+#   force assign failure-mode exit code to 2
 if [ $? -ne 0 ] ; then
-  exit 2
+    exit 2
 fi
+
+# NOTE SD: [STEP2] Create a featureset
+#   Once this step is done,
+#     running `GET _ltr/week1/_featureset/bbuy_main_featureset` in opensearch devtool
+#     yields:
+#      {
+#        "_index" : ".ltrstore_week1",
+#        "_type" : "store",
+#        "_id" : "featureset-bbuy_main_featureset",
+#        "_version" : 1,
+#        "_seq_no" : 0,
+#        "_primary_term" : 1,
+#        "found" : true,
+#        "_source" : {
+#          "name" : "bbuy_main_featureset",
+#          "type" : "featureset",
+#          "featureset" : {
+#            "name" : "bbuy_main_featureset",
+#            "features" : [
+#              {
+#                "name" : "name_match",
+#                "params" : [
+#                  "keywords"
+#                ],
+#                "template_language" : "mustache",
+#                "template" : {
+#                  "match" : {
+#                    "name" : "{{keywords}}"
+#                  }
+#                }
+#              }
+#            ]
+#          }
+#        }
+#      }
 python $WEEK/utilities/build_ltr.py -f $WEEK/conf/ltr_featureset.json --upload_featureset
 if [ $? -ne 0 ] ; then
-  exit 2
+    exit 2
 fi
+
+# NOTE SD: [STEP3] ???
 echo "Creating training and test data sets from impressions by splitting on dates"
 # Split the impressions into training and test
 python $WEEK/utilities/build_ltr.py --output_dir "$OUTPUT_DIR" --split_input "$ALL_CLICKS_FILE"  --split_train_rows $SPLIT_TRAIN_ROWS --split_test_rows $SPLIT_TEST_ROWS
 if [ $? -ne 0 ] ; then
-  exit 2
+    exit 2
 fi
 
+# NOTE SD: [STEP4] ???
 # Create our impressions (positive/negative) data set, e.g. all sessions (with LTR features added in already)
 echo "Creating impressions data set" # outputs to $OUTPUT_DIR/impressions.csv by default
 python $WEEK/utilities/build_ltr.py --generate_impressions  --output_dir "$OUTPUT_DIR" --train_file "$OUTPUT_DIR/train.csv" $SYNTHESIZE
 if [ $? -ne 0 ] ; then
-  exit 2
+    exit 2
 fi
+
+# NOTE SD: [STEP5] ???
 # Create the actual training set from the impressions set
 python $WEEK/utilities/build_ltr.py --ltr_terms_field sku --output_dir "$OUTPUT_DIR" --create_xgb_training -f $WEEK/conf/ltr_featureset.json --click_model $CLICK_MODEL $DOWNSAMPLE
 if [ $? -ne 0 ] ; then
-  exit 2
+    exit 2
 fi
+
+# NOTE SD: [STEP6] ???
 # Given a training set in SVMRank format, train an XGB model
 python $WEEK/utilities/build_ltr.py  --output_dir "$OUTPUT_DIR" -x "$OUTPUT_DIR/training.xgb" --xgb_conf $WEEK/conf/xgb-conf.json
 if [ $? -ne 0 ] ; then
-  exit 2
+    exit 2
 fi
 # Given an XGB model, upload it to the LTR store
 python $WEEK/utilities/build_ltr.py --upload_ltr_model --xgb_model "$OUTPUT_DIR/xgb_model.model"
 if [ $? -ne 0 ] ; then
-  exit 2
+    exit 2
 fi
 # Dump out some useful plots for visualizing our model
 python $WEEK/utilities/build_ltr.py --xgb_plot --output_dir "$OUTPUT_DIR"
 if [ $? -ne 0 ] ; then
-  exit 2
+    exit 2
 fi
 # Run our test queries through
 python $WEEK/utilities/build_ltr.py --xgb_test "$OUTPUT_DIR/test.csv" --train_file "$OUTPUT_DIR/train.csv" --output_dir "$OUTPUT_DIR" --xgb_test_num_queries $NUM_TEST_QUERIES  --xgb_main_query $MAIN_QUERY_WEIGHT --xgb_rescore_query_weight $RESCORE_WEIGHT
 if [ $? -ne 0 ] ; then
-  exit 2
+    exit 2
 fi
 # Analyze the results
-python $WEEK/utilities/build_ltr.py --analyze --output_dir "$OUTPUT_DIR" 
+python $WEEK/utilities/build_ltr.py --analyze --output_dir "$OUTPUT_DIR"

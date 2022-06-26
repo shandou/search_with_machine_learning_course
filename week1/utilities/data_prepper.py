@@ -228,7 +228,10 @@ class DataPrepper:
                             total_clicked_docs_per_query += 1
                         num_impressions.append(query_times_seen)
                         clicks.append(num_clicks)
-                        if hit["_source"].get("name") is not None:
+                        if (
+                            hit["_source"].get("name") is not None
+                            and len(hit["_source"].get("name")) > 0
+                        ):
                             product_names.append(hit["_source"]["name"][0])
                         else:
                             product_names.append("SKU: %s -- No Name" % sku)
