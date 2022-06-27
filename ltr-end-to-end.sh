@@ -59,7 +59,7 @@ set -x
 #     yields: {"exists" : true}
 python $WEEK/utilities/build_ltr.py --create_ltr_store
 # NOTE SD: Check exit status via `$?`
-#   0 = success; if exist code is not 0,
+#   0 = success; if exit code is not 0,
 #   force assign failure-mode exit code to 2
 if [ $? -ne 0 ] ; then
     exit 2
@@ -104,7 +104,7 @@ if [ $? -ne 0 ] ; then
     exit 2
 fi
 
-# NOTE SD: [STEP3] ???
+# NOTE SD: [STEP3] Train-test split
 echo "Creating training and test data sets from impressions by splitting on dates"
 # Split the impressions into training and test
 python $WEEK/utilities/build_ltr.py --output_dir "$OUTPUT_DIR" --split_input "$ALL_CLICKS_FILE"  --split_train_rows $SPLIT_TRAIN_ROWS --split_test_rows $SPLIT_TEST_ROWS
@@ -112,7 +112,7 @@ if [ $? -ne 0 ] ; then
     exit 2
 fi
 
-# NOTE SD: [STEP4] ???
+# NOTE SD: [STEP4] Generate synthetic impression
 # Create our impressions (positive/negative) data set, e.g. all sessions (with LTR features added in already)
 echo "Creating impressions data set" # outputs to $OUTPUT_DIR/impressions.csv by default
 python $WEEK/utilities/build_ltr.py --generate_impressions  --output_dir "$OUTPUT_DIR" --train_file "$OUTPUT_DIR/train.csv" $SYNTHESIZE
@@ -120,33 +120,42 @@ if [ $? -ne 0 ] ; then
     exit 2
 fi
 
-# NOTE SD: [STEP5] ???
+# NOTE SD: [STEP5] Feature engineering
 # Create the actual training set from the impressions set
 python $WEEK/utilities/build_ltr.py --ltr_terms_field sku --output_dir "$OUTPUT_DIR" --create_xgb_training -f $WEEK/conf/ltr_featureset.json --click_model $CLICK_MODEL $DOWNSAMPLE
 if [ $? -ne 0 ] ; then
     exit 2
 fi
 
-# NOTE SD: [STEP6] ???
+# NOTE SD: [STEP6] Model training
 # Given a training set in SVMRank format, train an XGB model
 python $WEEK/utilities/build_ltr.py  --output_dir "$OUTPUT_DIR" -x "$OUTPUT_DIR/training.xgb" --xgb_conf $WEEK/conf/xgb-conf.json
 if [ $? -ne 0 ] ; then
     exit 2
 fi
+
+# NOTE SD: [STEP7] Upload XGB model to LTR store
 # Given an XGB model, upload it to the LTR store
 python $WEEK/utilities/build_ltr.py --upload_ltr_model --xgb_model "$OUTPUT_DIR/xgb_model.model"
 if [ $? -ne 0 ] ; then
     exit 2
 fi
+
+# NOTES SD: [STEP8] Dump model-related plots
 # Dump out some useful plots for visualizing our model
 python $WEEK/utilities/build_ltr.py --xgb_plot --output_dir "$OUTPUT_DIR"
 if [ $? -ne 0 ] ; then
     exit 2
 fi
+
+# NOTES SD: [STEP9] Apply model on test set
 # Run our test queries through
 python $WEEK/utilities/build_ltr.py --xgb_test "$OUTPUT_DIR/test.csv" --train_file "$OUTPUT_DIR/train.csv" --output_dir "$OUTPUT_DIR" --xgb_test_num_queries $NUM_TEST_QUERIES  --xgb_main_query $MAIN_QUERY_WEIGHT --xgb_rescore_query_weight $RESCORE_WEIGHT
 if [ $? -ne 0 ] ; then
     exit 2
 fi
+
+# NOTES SD: [STEP10] Check model's test set performance
+# Run our test queries through
 # Analyze the results
 python $WEEK/utilities/build_ltr.py --analyze --output_dir "$OUTPUT_DIR"
