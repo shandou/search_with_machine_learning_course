@@ -13,9 +13,9 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             // step 1: Create LTR feature store
-            "args": [
-                "--create_ltr_store"
-            ]
+            // "args": [
+            //     "--create_ltr_store"
+            // ]
             //
             // step2: Create featureset
             // "args": [
@@ -24,7 +24,7 @@
             //     "--upload_featureset"
             // ]
             //
-            // step 3: Train-test split
+            //step 3: Train-test split
             // "args": [
             //     "--output_dir",
             //     "/workspace/ltr_output",
@@ -46,7 +46,7 @@
             //     "--synthesize"
             // ]
             //
-            // step 5: Feature engineering
+            // step 5: Feature and target engineering
             // "args": [
             //     "--ltr_terms_field",
             //     "sku",
@@ -84,20 +84,20 @@
             // ]
             //
             //step 9: Apply model on test set
-            // "args": [
-            //     "--xgb_test",
-            //     "/workspace/ltr_output/test.csv",
-            //     "--train_file",
-            //     "/workspace/ltr_output/train.csv",
-            //     "--output_dir",
-            //     "/workspace/ltr_output/",
-            //     "--xgb_test_num_queries",
-            //     "100",
-            //     "--xgb_main_query",
-            //     "1",
-            //     "--xgb_rescore_query_weight",
-            //     "2"
-            // ]
+            "args": [
+                "--xgb_test",
+                "/workspace/ltr_output/test.csv",
+                "--train_file",
+                "/workspace/ltr_output/train.csv",
+                "--output_dir",
+                "/workspace/ltr_output/",
+                "--xgb_test_num_queries",
+                "100",
+                "--xgb_main_query",
+                "1",
+                "--xgb_rescore_query_weight",
+                "2"
+            ]
             //
             //step 10: Check model's test set performance
             // "args": [
