@@ -1,3 +1,8 @@
+#!/bin/bash
+
+eval "$(pyenv init -)"
+pyenv activate search_with_ml
+
 usage()
 {
     echo "Usage: $0 [-s /workspace/search_with_machine_learning_course] [-c {ctr, heuristic, binary}] [ -w week1 ] [ -d ] [ -a /path/to/bbuy/products/train.csv ]  [-t num rows for the test split, default 100000] [-e num test queries to run. Default 200] [-r num rows for the training split, default 1000000] [-y] [-o output dir] [-g RESCORE QUERY WEIGHT] [-m MAIN QUERY WEIGHT] "
