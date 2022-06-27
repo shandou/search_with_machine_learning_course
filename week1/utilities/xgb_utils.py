@@ -41,6 +41,12 @@ def train(xgb_train_data, num_rounds=5, xgb_conf=None):
     )
     ##### Step 3.a
     # print("IMPLEMENT ME: train()")
+    # Example of xgb_train_data = /workspace/ltr_output/training.xgb record
+    # 0.0000  qid:513 1:12.4681       2:12.4681       3:0.0000        4:10.8821       5:13.7044       6:2.7000        7:75.0000 # 8331272     2.0     Fm transmitter     fake
+    # The very first column "0.000" is the 0 to 1 relevancy grade
+    #   The DMatrix is a 8761 x 8 matrix
+    #   Columns consist of (assuming the case of 7 features: feature_index:feature_value)
+    #       0.0000 1:12.4681       2:12.4681       3:0.0000        4:10.8821       5:13.7044       6:2.7000        7:75.0000
     bst = xgb.train(
         xgb_params, xgb.DMatrix(xgb_train_data), num_boost_round=num_rounds
     )
