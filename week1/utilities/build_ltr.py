@@ -495,9 +495,14 @@ if __name__ == "__main__":
 
     #####
     #
-    # Given an --impressions_file, create an SVMRank formatted output file containing one row per query-doc-features-comments.
-    # Looping over impressions, this code issues queries to OpenSearch using the SLTR EXT function to extract LTR feaatures per every query-SKU pair
-    # It then optionally normalizes the data (we will not use this in class, but it's there for future use where we don't use XGB, since XGB doesn't need normalization since it's calculating splits)
+    # Given an --impressions_file, create an SVMRank formatted output file
+    # containing one row per query-doc-features-comments.
+    # Looping over impressions, this code issues queries to
+    # OpenSearch using the SLTR EXT function to extract LTR feaatures
+    # per every query-SKU pair
+    # It then optionally normalizes the data (we will not use this in class,
+    # but it's there for future use where we don't use XGB,
+    # since XGB doesn't need normalization since it's calculating splits)
     # We also apply any click models we've implemented to then assign a grade/relevance score for each and every row.  See click_models.py.
     # Click models can also optionally downsample to create a more balanced training set.
     # Finally, we output two files: 1) training.xgb -- the file to feed to XGB for training
