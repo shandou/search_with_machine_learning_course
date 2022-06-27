@@ -1,4 +1,7 @@
 # This file processes our queries, runs them through OpenSearch against the BBuy Products index to fetch their "rank" and so they can be used properly in a click model
+from typing import List, Dict, Any
+import json
+import requests
 
 import ltr_utils as lu
 import numpy as np
@@ -316,6 +319,7 @@ class DataPrepper:
     #         {'name': 'sale_price_function', 'value': 949.99},
     #         {'name': 'price_function', 'value': 0.0}]}]
     # For each query, make a request to OpenSearch with SLTR logging on and extract the features
+
     def __log_ltr_query_features(
         self,
         query_id,
@@ -337,27 +341,53 @@ class DataPrepper:
         )
         ##### Step Extract LTR Logged Features:
         # IMPLEMENT_START --
-        print(
-            "IMPLEMENT ME: __log_ltr_query_features: Extract log features out of the LTR:EXT response and place in a data frame"
+        # print(json.dumps(log_query, indent=4))
+        # print(
+        #     "IMPLEMENT ME: __log_ltr_query_features: Extract log features out of the LTR:EXT response and place in a data frame"
+        # )
+
+        response = self.opensearch.search(
+            body=log_query, index=self.index_name
         )
-        # Loop over the hits structure returned by running `log_query` and then extract out the features from the response per query_id and doc id.  Also capture and return all query/doc pairs that didn't return features
-        # Your structure should look like the data frame below
-        feature_results = {}
-        feature_results[
-            "doc_id"
-        ] = []  # capture the doc id so we can join later
-        feature_results["query_id"] = []  # ^^^
-        feature_results["sku"] = []
-        feature_results["name_match"] = []
-        rng = np.random.default_rng(12345)
-        for doc_id in query_doc_ids:
-            feature_results["doc_id"].append(
-                doc_id
-            )  # capture the doc id so we can join later
-            feature_results["query_id"].append(query_id)
-            feature_results["sku"].append(doc_id)
-            feature_results["name_match"].append(rng.random())
+
+        # Loop over the hits structure returned by running `log_query` and
+        #   then extract out the features from
+        #   the response per query_id and doc id.
+        # Also capture and return all query/doc pairs that didn't return features
+        feature_results = []
+
+        for record in response["hits"]["hits"]:
+
+            feature_result = {"doc_id": record["_id"]}
+            feature_result.update({"query_id": query_id})
+            feature_result.update({"sku": record["_id"]})
+
+            # Extract feature value for current query/doc pair
+            for feature in record["fields"]["_ltrlog"][0]["log_entry"]:
+                feature_result.update(
+                    {feature["name"]: feature.get("value", 0)}
+                )
+
+            feature_results.append(feature_result)
+
         frame = pd.DataFrame(feature_results)
+        # # Your structure should look like the data frame below
+        # feature_results = {}
+        # feature_results[
+        #     "doc_id"
+        # ] = []  # capture the doc id so we can join later
+        # feature_results["query_id"] = []  # ^^^
+        # feature_results["sku"] = []
+        # # feature_results["name_match"] = []
+        # # rng = np.random.default_rng(12345)
+        # for doc_id in query_doc_ids:
+        #     feature_results["doc_id"].append(
+        #         doc_id
+        #     )  # capture the doc id so we can join later
+        #     feature_results["query_id"].append(query_id)
+        #     feature_results["sku"].append(doc_id)
+        #     # feature_results["name_match"].append(rng.random())
+        # frame = pd.DataFrame(feature_results)
         return frame.astype(
             {"doc_id": "int64", "query_id": "int64", "sku": "int64"}
         )

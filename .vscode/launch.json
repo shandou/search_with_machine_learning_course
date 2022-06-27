@@ -12,19 +12,19 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            // step1
-            // "args": [
-            //     "--create_ltr_store"
-            // ]
+            // step 1: Create LTR feature store
+            "args": [
+                "--create_ltr_store"
+            ]
             //
-            // step2
+            // step2: Create featureset
             // "args": [
             //     "-f",
             //     "week1/conf/ltr_featureset.json",
             //     "--upload_featureset"
             // ]
             //
-            // step3
+            // step 3: Train-test split
             // "args": [
             //     "--output_dir",
             //     "/workspace/ltr_output",
@@ -36,32 +36,84 @@
             //     "1000000"
             // ]
             //
-            // step4
+            // step 4: Generate synthetic impression
             // "args": [
             //     "--generate_impressions",
             //     "--output_dir",
             //     "/workspace/ltr_output",
             //     "--train_file",
-            //     "/workspace/ltr_output/train.csv"
+            //     "/workspace/ltr_output/train.csv",
+            //     "--synthesize"
             // ]
-            // step5
-            "args": [
-                "--ltr_terms_field",
-                "sku",
-                "--output_dir",
-                "/workspace/ltr_output",
-                "--create_xgb_training",
-                "-f",
-                "week1/conf/ltr_featureset.json",
-                "--click_model",
-                "heuristic"
-            ]
+            //
+            // step 5: Feature engineering
+            // "args": [
+            //     "--ltr_terms_field",
+            //     "sku",
+            //     "--output_dir",
+            //     "/workspace/ltr_output",
+            //     "--create_xgb_training",
+            //     "-f",
+            //     "week1/conf/ltr_featureset.json",
+            //     "--click_model",
+            //     "heuristic"
+            // ]
+            //
+            // step 6: Model training
+            // "args": [
+            //     "--output_dir",
+            //     "/workspace/ltr_output",
+            //     "-x",
+            //     "/workspace/ltr_output/training.xgb",
+            //     "--xgb_conf",
+            //     "week1/conf/xgb-conf.json",
+            // ]
+            //
+            // step 7: Upload XGB model to LTR store
+            // "args": [
+            //     "--upload_ltr_model",
+            //     "--xgb_model",
+            //     "/workspace/ltr_output/xgb_model.model"
+            // ]
+            //
+            //step 8: Dump model-related plots
+            // "args": [
+            //     "--xgb_plot",
+            //     "--output_dir",
+            //     "/workspace/ltr_output/"
+            // ]
+            //
+            //step 9: Apply model on test set
+            // "args": [
+            //     "--xgb_test",
+            //     "/workspace/ltr_output/test.csv",
+            //     "--train_file",
+            //     "/workspace/ltr_output/train.csv",
+            //     "--output_dir",
+            //     "/workspace/ltr_output/",
+            //     "--xgb_test_num_queries",
+            //     "100",
+            //     "--xgb_main_query",
+            //     "1",
+            //     "--xgb_rescore_query_weight",
+            //     "2"
+            // ]
+            //
+            //step 10: Check model's test set performance
+            // "args": [
+            //     "--analyze",
+            //     "--output_dir",
+            //     "/workspace/ltr_output"
+            // ]
         },
         {
             "type": "bashdb",
             "request": "launch",
             "name": "Bash-Debug (simplest configuration)",
-            "program": "${file}"
+            "program": "${file}",
+            "args": [
+                "-y"
+            ]
         }
     ]
 }
