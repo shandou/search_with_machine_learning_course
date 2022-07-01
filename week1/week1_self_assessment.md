@@ -121,8 +121,15 @@ For search engines, precision is the proportion of relevant documents within the
 
 **4. What are some of the traps associated with using click data in your model?**
 
--   Target leakage
--   TODO: What else?
+Target leakage is the main one.
+
+Additonally, we could also run the risk of memorizing the head queries.
+On the flip side, tail queries might have a low number of impressions
+and a particular document could have a high number of clicks,
+and as a result, such that a click model could be skewed. 
+
+Lastly, we can also have systematic bias in your data and
+a click model will learn and reinforce it.
 
 ---
 
@@ -137,7 +144,10 @@ To prevent these "data faking", we need to equip our application with instrument
 
 **6. What is target leakage and why is it a bad thing?**
 
-Target leakage occurs whenver a model is given information that it would not have access to at prediction time. Typical examples include:
+Target leakage occurs whenever a model is given information that
+it would not have access to at prediction time.
+
+Typical examples include:
 
 -   Data from the future is mixed with the past in forecasting problems
 -   Target variables are used to encode categorical features (e.g., mean encoding)
@@ -291,7 +301,7 @@ num_rounds = 5
 xgb_params = {"objective": "reg:logistic"}
 ```
 
-Hyperparameters not mentioned above all take default values as shown in [XGBoos documentation](https://xgboost.readthedocs.io/en/stable/parameter.html)
+Hyperparameters not mentioned above all take default values as shown in [XGBoost documentation](https://xgboost.readthedocs.io/en/stable/parameter.html)
 
 Interestingly, the following operations do not improve MRR:
 
@@ -311,6 +321,6 @@ Interestingly, the following operations do not improve MRR:
 
 > -   We can inject it at feature logging time and query time via a query time join.  This is admittedly trickier to make perform, but has the benefit that it is easy to update and allows for more flexibility in our query design.
 
-TODO: How to register query-item pair features that are more complicated to computed,
+TODO: For learning-to-rank plugins, how to register query-item pair features that are more complicated to computed,
 such as purchase log-based query-item counts, query-specific features,
 query-item semantic similarities.
