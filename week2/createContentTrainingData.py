@@ -1,16 +1,41 @@
+from typing import List
+import re
 import argparse
 import multiprocessing
 import glob
-from tqdm import tqdm
 import os
 import random
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from nltk.stem import SnowballStemmer
+from tqdm import tqdm
 
-def transform_name(product_name):
-    # IMPLEMENT
-    return product_name
+
+def transform_name(product_name: str) -> str:
+    """Lowercase and normalize input string
+
+    Parameters
+    ----------
+    product_name: str
+        Product name of the catalogue
+
+    Returns
+    -------
+    str
+        Normalized string
+    """
+
+    # 1. Lowercase and exclude all non-alphanumerical chars except underscore
+    product_name_processed: str = re.sub(r"\W", " ", product_name.lower())
+
+    # 2. Apply Snowball stemmer
+    tokens: List[str] = [
+        SnowballStemmer("english").stem(token)
+        for token in product_name_processed.split()
+    ]
+
+    return " ".join(tokens)
 
 
 # Directory for product data
@@ -80,20 +105,22 @@ def _label_filename(filename):
             and child.find("name").text is not None
             and child.find("categoryPath") is not None
             and len(child.find("categoryPath")) > 0
-            and child.find("categoryPath")[len(child.find("categoryPath")) - 1][0].text
+            and child.find("categoryPath")[
+                len(child.find("categoryPath")) - 1
+            ][0].text
             is not None
             and child.find("categoryPath")[0][0].text == "cat00000"
             and child.find("categoryPath")[1][0].text != "abcat0600000"
         ):
             # Choose last element in categoryPath as the leaf categoryId or name
             if names_as_labels:
-                cat = child.find("categoryPath")[len(child.find("categoryPath")) - 1][
-                    1
-                ].text.replace(" ", "_")
+                cat = child.find("categoryPath")[
+                    len(child.find("categoryPath")) - 1
+                ][1].text.replace(" ", "_")
             else:
-                cat = child.find("categoryPath")[len(child.find("categoryPath")) - 1][
-                    0
-                ].text
+                cat = child.find("categoryPath")[
+                    len(child.find("categoryPath")) - 1
+                ][0].text
             # Replace newline chars with spaces so fastText doesn't complain
             name = child.find("name").text.replace("\n", " ")
             labels.append((cat, transform_name(name)))
@@ -105,7 +132,9 @@ if __name__ == "__main__":
 
     print("Writing results to %s" % output_file)
     with multiprocessing.Pool() as p:
-        all_labels = tqdm(p.imap_unordered(_label_filename, files), total=len(files))
+        all_labels = tqdm(
+            p.imap_unordered(_label_filename, files), total=len(files)
+        )
 
         with open(output_file, "w") as output:
             for label_list in all_labels:
