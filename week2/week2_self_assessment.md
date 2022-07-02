@@ -1,4 +1,4 @@
-# Week 1 Project Self-Assessment
+# Week 2 Project Self-Assessment
 
 ## Instructor's question set
 
