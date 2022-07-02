@@ -12,9 +12,13 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
+            // "args": [
+            //     "--output",
+            //     "/workspace/datasets/fasttext/labeled_products.txt"
+            // ]
             "args": [
-                "--output",
-                "/workspace/datasets/fasttext/labeled_products.txt"
+                "--min_products",
+                "1"
             ]
         },
         {
