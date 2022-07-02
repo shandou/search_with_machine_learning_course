@@ -13,23 +13,32 @@ from tqdm import tqdm
 
 
 def transform_name(product_name: str) -> str:
-    """Lowercase and normalize input string
+    """Normalize product name text
+
+    Operations are:
+    - Convert to lowercase
+    - Exclude non-word character with \W (i.e., [^a-zA-Z0-9_])
+    - Word tokens separated by single space only
 
     Parameters
     ----------
     product_name: str
-        Product name of the catalogue
+        | Product name of the catalogue
 
     Returns
     -------
     str
-        Normalized string
+        | Normalized string
+
     """
+    # IMPLEMENT
 
     # 1. Lowercase and exclude all non-alphanumerical chars except underscore
     product_name_processed: str = re.sub(r"\W", " ", product_name.lower())
 
     # 2. Apply Snowball stemmer
+    # TODO: Ask instructors about why Snowball stemmer
+    #   --a more aggressive stemmer is picked over Porter stemmer
     tokens: List[str] = [
         SnowballStemmer("english").stem(token)
         for token in product_name_processed.split()
