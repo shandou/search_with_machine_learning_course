@@ -2,10 +2,13 @@
 
 ## Instructor's question set
 
+---
+
 **1. For classifying product names to categories:**
 
-a. What precision (P@1) were you able to achieve?
-With simple filter (exclude categories with n_unique_products < 500) and basic normalization applied to product names (details described below), I get **P@1 = 0.969**.
+___a. What precision (P@1) were you able to achieve?___
+
+With simple filter (exclude categories with n_unique_products < 500) and basic normalization applied to product names (details described below), I get testing precision **P@1 = 0.969**.
 
 ```bash
 # Train / testing data generation steps
@@ -18,7 +21,7 @@ $ wc -l pruned_labeled_products.txt
 23902 pruned_labeled_products.txt
 
 
-# 2. Shuffle to reduce the chance of being affected by systematic bias
+# 2. Shuffle to reduce the chance of being affected by systematic biases
 $ shuf /workspace/datasets/fasttext/pruned_labeled_products.txt > \
 /workspace/datasets/fasttext/shuffled_pruned_labeled_products.txt
 
@@ -28,18 +31,19 @@ $ head -n 10000 shuffled_pruned_labeled_products.txt > pruned_training_data.txt
 $ tail -n 10000 shuffled_pruned_labeled_products.txt > pruned_test_data.txt
 ```
 
-b. What fastText parameters did you use?
+___b. What fastText parameters did you use?___
 
 -   Learning rate = 1.0
--   Epoch = 25
+-   Number of epochs = 25
 -   Word ngrams = 2
 
 ```bash
-# fastText parameters as command line arguments
+## fastText parameters as command line arguments
 
 # Training
 $ ~/fastText-0.9.2/fasttext supervised \
--input pruned_training_data.txt -output product_classifier_pruned_bigram \
+-input pruned_training_data.txt \
+-output product_classifier_pruned_bigram \
 -lr 1.0 -epoch 25 -wordNgrams 2
 
 # Testing
@@ -50,13 +54,16 @@ P@1     0.969
 R@1     0.969
 ```
 
-c. How did you transform the product names?
+___c. How did you transform the product names?___
 
 -   Lowercase
--   Exclude non-word characters
+-   Exclude non-word characters 
+
+    ("word" = alphanumerical character and underscore "_")
+
 -   Stemming with Snowball stemmer
 
-d. How did you prune infrequent category labels, and how did that affect your precision?
+___d. How did you prune infrequent category labels, and how did that affect your precision?___
 
 I simply excluded all categories that have n_unique_products < 500.
 It results in a marked improvement in P@1--an increase from 0.615 to 0.969
@@ -98,11 +105,13 @@ P@1     0.969
 R@1     0.969
 ```
 
-e. How did you prune the category tree, and how did that affect your precision?
+___e. How did you prune the category tree, and how did that affect your precision?___
 
 I did not implement the leave node merging approach that is optional.
 However, this is exactly the type of approach I want to use
 for creating class labels for query classification.
+
+---
 
 **2. For deriving synonyms from content:**
 
