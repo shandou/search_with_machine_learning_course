@@ -2,11 +2,9 @@
 
 ## Instructor's question set
 
----
-
 **1. For classifying product names to categories:**
 
-___a. What precision (P@1) were you able to achieve?___
+**_a. What precision (P@1) were you able to achieve?_**
 
 With simple filter (exclude categories with n_unique_products < 500) and basic normalization applied to product names (details described below), I get testing precision **P@1 = 0.969**.
 
@@ -31,7 +29,7 @@ $ head -n 10000 shuffled_pruned_labeled_products.txt > pruned_training_data.txt
 $ tail -n 10000 shuffled_pruned_labeled_products.txt > pruned_test_data.txt
 ```
 
-___b. What fastText parameters did you use?___
+**_b. What fastText parameters did you use?_**
 
 -   Learning rate = 1.0
 -   Number of epochs = 25
@@ -54,16 +52,16 @@ P@1     0.969
 R@1     0.969
 ```
 
-___c. How did you transform the product names?___
+**_c. How did you transform the product names?_**
 
 -   Lowercase
--   Exclude non-word characters 
+-   Exclude non-word characters
 
-    ("word" = alphanumerical character and underscore "_")
+    ("word" = alphanumerical character and underscore "\_")
 
 -   Stemming with Snowball stemmer
 
-___d. How did you prune infrequent category labels, and how did that affect your precision?___
+**_d. How did you prune infrequent category labels, and how did that affect your precision?_**
 
 I simply excluded all categories that have n_unique_products < 500.
 It results in a marked improvement in P@1--an increase from 0.615 to 0.969
@@ -105,7 +103,7 @@ P@1     0.969
 R@1     0.969
 ```
 
-___e. How did you prune the category tree, and how did that affect your precision?___
+**_e. How did you prune the category tree, and how did that affect your precision?_**
 
 I did not implement the leave node merging approach that is optional.
 However, this is exactly the type of approach I want to use
@@ -116,10 +114,49 @@ for creating class labels for query classification.
 **2. For deriving synonyms from content:**
 
 a. What were the results for your best model in the tokens used for evaluation?
+The best skipgram model has an average loss of 1.2236 (loss = fastText's default softmax loss)
 
 b. What fastText parameters did you use?
 
+-   Learning rate = 0.05
+-   Number of epochs = 25
+-   Rare word filter threshold minCount (minimal number of word occurrences) = 20
+
+The corresponding command line is:
+
+```bash
+$ ~/fastText-0.9.2/fasttext skipgram \
+-input /workspace/datasets/fasttext/normalized_titles.txt \
+-output /workspace/datasets/fasttext/normalized_title_model_lrtest \
+-minCount 20 -epoch 25 -lr 0.05
+Read 1M words
+Number of words:  3709
+Number of labels: 0
+Progress: 100.0% words/sec/thread:    3826 lr:  0.000000 avg.loss:  1.223611 ETA:   0h 0m 0s
+```
+
 c. How did you transform the product names?
+
+Ref: [Path to implementation](https://github.com/shandou/search_with_machine_learning_course/blob/97750317bc6da681635a5b1226fce22a6b300339/week2/utilities/synonym_utils.py#L136-L143)
+
+-   Lower case
+-   Strip accents (e.g., transform Â -> A)
+-   Remove non-word characters (i.e., exclude [^a-za-z0-9_])
+-   Lemmatize to reduce inflected word variants to root words (via nltk's wordnet lemmatizer)
+
+```python
+# Implementation example in week2/utilities/synonym_utils.py
+>>> df_titles[COLNAME_PRODUCT] = df_titles[COLNAME_PRODUCT].apply(
+...     lambda x: TextNormalizer(x.lower())
+...     .strip_accents()
+...     .remove_non_word()
+...     .tokenize()
+...     .lemmatize()
+...     .done()
+... )
+```
+
+---
 
 **3. For integrating synonyms with search:**
 
@@ -141,7 +178,7 @@ d. What else did you try and learn?
 
 ---
 
-## Self guided question and answering articulations
+## Self guided question-answering articulations
 
 **Q1. For information retrieval, why does stemming appear more often than
 lemmatization for normalizing morphological variations?**
@@ -156,3 +193,7 @@ whereas stemming is recommended when the context is not important.
 but not Porter?**
 
 A1: TODO
+
+```
+
+```
