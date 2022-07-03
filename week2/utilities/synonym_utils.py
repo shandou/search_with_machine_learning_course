@@ -31,13 +31,24 @@ class TextNormalizer:
     strip_accents
         | Removes accents from characters (e.g., Â -> A)
     remove_non_word
-        | Strip away any non-word characters (e.g., [^a-zA-Z0-9_])
+        | Strip away any non-word characters (i.e., [^a-zA-Z0-9_])
     tokenize
         | Tokenize input string into a list of word unigrams
     lemmatize
         | Normalizes inflected tokens into root word with WordNet corpus
     done -> str
         | Joins normalized tokens into normalized output string
+
+    Example usages
+    ---------------
+    >>> df_titles[COLNAME_PRODUCT] = df_titles[COLNAME_PRODUCT].apply(
+    ...     lambda x: TextNormalizer(x.lower())
+    ...     .strip_accents()
+    ...     .remove_non_word()
+    ...     .tokenize()
+    ...     .lemmatize()
+    ...     .done()
+    ... )
 
     """
 
