@@ -16,3 +16,4 @@ nltk
 kaggle
 lxml
 sentence-transformers
+Unidecode
