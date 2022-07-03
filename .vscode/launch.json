@@ -16,10 +16,10 @@
             //     "--output",
             //     "/workspace/datasets/fasttext/labeled_products.txt"
             // ]
-            "args": [
-                "--min_products",
-                "1"
-            ]
+            // "args": [
+            //     "--min_products",
+            //     "1"
+            // ]
         },
         {
             "type": "bashdb",
