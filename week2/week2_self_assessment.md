@@ -113,14 +113,28 @@ for creating class labels for query classification.
 
 **2. For deriving synonyms from content:**
 
-a. What were the results for your best model in the tokens used for evaluation?
+**_a. What were the results for your best model in the tokens used for evaluation?_**
+
 The best skipgram model has an average loss of 1.2236 (loss = fastText's default softmax loss)
 
-b. What fastText parameters did you use?
+___b. What fastText parameters did you use?___
 
 -   Learning rate = 0.05
 -   Number of epochs = 25
 -   Rare word filter threshold minCount (minimal number of word occurrences) = 20
+
+> **_Gotchas in learning rate:_**  The skipgram model does not play well with large learning rate. Any learning rate exceeding 0.3 causes fastText to crash (example error messages are shown below). [A related GitHub thread](https://github.com/facebookresearch/fastText/issues/385) appears to attribute it to numerical instability caused by gradient explosion. Interestingly, comparing skipgram and the level1 content classification task, I can see that skipgram is especially sensitive to learning rate. Whereas content classification can work with learning rate as large as 1.0, skipgram crashes at lr > 0.3 and has worse average loss with lr = 0.1. In the end, I picked lr = 0.05 for skipgram, but I don't yet have intuition in what is causing skipgram to not play well with higher learning rate when compared to content classification.
+
+```bash
+# Example of fastText crashing when using large learning rate for skipgram word2vec training
+~/fastText-0.9.2/fasttext skipgram -input /workspace/datasets/fasttext/normalized_titles.txt -output /workspace/datasets/fasttext/normalized_title_model_lr_test -minCount 20 -epoch 25 -lr 0.4
+Read 1M words
+Number of words:  3709
+Number of labels: 0
+Progress:   2.6% words/sec/thread:    4896 lr:  0.389557 avg.loss: 23.048059 ETA:   0h 7m51sterminate called after throwing an instance of 'fasttext::DenseMatrix::EncounteredNaNError'
+  what():  Encountered NaN.
+Aborted (core dumped)
+```
 
 The corresponding command line is:
 
@@ -135,7 +149,7 @@ Number of labels: 0
 Progress: 100.0% words/sec/thread:    3826 lr:  0.000000 avg.loss:  1.223611 ETA:   0h 0m 0s
 ```
 
-c. How did you transform the product names?
+___c. How did you transform the product names?___
 
 Ref: [Path to implementation](https://github.com/shandou/search_with_machine_learning_course/blob/97750317bc6da681635a5b1226fce22a6b300339/week2/utilities/synonym_utils.py#L136-L143)
 
@@ -265,16 +279,16 @@ GET /bbuy_products/_analyze
 ...
 ```
 
-a. How did you transform the product names (if different than previously)?
+___a. How did you transform the product names (if different than previously)?___
 
 I apply the same text normalization steps as level2.
 
 
-b. What threshold score did you use?
+___b. What threshold score did you use?___
 
 Cosine similarity >= 0.75
 
-c. Were you able to find the additional results by matching synonyms?
+___c. Were you able to find the additional results by matching synonyms?___
 
 Not always for the three test cases listed in the instructions: `earbuds`, `nespresso`, and `dslr`.
 
@@ -289,6 +303,7 @@ Likely explanations:
 - The unchanged result count for `nespresso` is because of a lack of synonyms for origin word
 - The increased results for `dslr` makes sense given the rich set of synonyms it has
 
+---
 
 **4. For classifying reviews:**
 
@@ -307,8 +322,17 @@ whereas the latter is context-dependent.
 Lemmatization is preferred for context analysis,
 whereas stemming is recommended when the context is not important.
 
+> I agree that stemming is more commonly used than lemmatization. Lemmatization is more conservative than stemming, but it won’t cover words outside your dictionary — which is a major limitation when some of the words you’re interested in are brand or model names like “iphones”.
+> [Recommended reading](https://queryunderstanding.com/stemming-and-lemmatization-6c086742fe45) -- Daniel
+
 **Q2: For stemmer, why is Snowball recommended for week2 project level1,
 but not Porter?**
 
-A1: TODO
+A1: Because Snowball is supposed to be an improved version of Porter (improved how?). 
+> Porter wrote the Snowball stemmer — it’s also known as “Porter2”. It’s basically an improved version of his original stemmer.
+-- Daniel
 
+
+**Q3: Compared to content classification task, fastText's skipgram model training does not play well with large learning rate (e.g., while classification can work with lr as high as 1.0, skipgram crashes at lr > 0.3). Intuitively speaking, why should this be the case?**
+
+TODO
