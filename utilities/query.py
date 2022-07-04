@@ -73,6 +73,9 @@ def create_query(
 ):
 
     if use_synonyms:
+        # When ``use_synonyms`` toggle is True
+        #   Simply replace all occurrences of the fieldname "name"
+        #   with "name.synonyms"
         name_field: str = "name.synonyms"
     else:
         name_field = "name"
