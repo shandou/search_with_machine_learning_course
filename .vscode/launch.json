@@ -20,6 +20,9 @@
             //     "--min_products",
             //     "1"
             // ]
+            "args": [
+                "--synonyms",
+            ]
         },
         {
             "type": "bashdb",
@@ -27,7 +30,9 @@
             "name": "Bash-Debug (simplest configuration)",
             "program": "${file}",
             "args": [
-                "-y"
+                "-r",
+                "-p",
+                "/workspace/search_with_machine_learning_course/week2/conf/bbuy_products.json"
             ]
         }
     ]
