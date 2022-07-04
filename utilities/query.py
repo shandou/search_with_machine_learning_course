@@ -275,15 +275,16 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    if len(vars(args)) == 0:
+        parser.print_usage()
+        exit()
+
     if bool(args.synonyms):
         print(
             f"synonyms == {args.synonyms} is requested; "
             "use ``name.synonyms`` in search query"
         )
-
-    if len(vars(args)) == 0:
-        parser.print_usage()
-        exit()
 
     host = args.host
     port = args.port
