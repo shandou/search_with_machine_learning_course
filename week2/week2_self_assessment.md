@@ -160,21 +160,139 @@ Ref: [Path to implementation](https://github.com/shandou/search_with_machine_lea
 
 **3. For integrating synonyms with search:**
 
+Field mapping after adding synonym filter
+```json
+...
+"name" : {
+          "type" : "text",
+          "fields" : {
+            "hyphens" : {
+              "type" : "text",
+              "analyzer" : "smarter_hyphens"
+            },
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 2048
+            },
+            "suggest" : {
+              "type" : "completion",
+              "analyzer" : "simple",
+              "preserve_separators" : true,
+              "preserve_position_increments" : true,
+              "max_input_length" : 50
+            },
+            "synonyms" : {
+              "type" : "text",
+              "analyzer" : "synonym"
+            }
+          },
+          "analyzer" : "english"
+        },
+...
+```
+
+Test the synonym analyzer:
+
+- Request:
+```json
+GET /bbuy_products/_analyze
+{
+  "analyzer": "synonym",
+  "explain": "true",
+  "text": ["iphone"]
+}
+```
+
+- Response:
+```json
+...
+    "tokenfilters" : [
+      {
+        "name" : "synonym_filter",
+        "tokens" : [
+          {
+            "token" : "iphone",
+            "start_offset" : 0,
+            "end_offset" : 6,
+            "type" : "<ALPHANUM>",
+            "position" : 0,
+            "bytes" : "[69 70 68 6f 6e 65]",
+            "positionLength" : 1,
+            "termFrequency" : 1
+          },
+          {
+            "token" : "apple",
+            "start_offset" : 0,
+            "end_offset" : 6,
+            "type" : "SYNONYM",
+            "position" : 0,
+            "bytes" : "[61 70 70 6c 65]",
+            "positionLength" : 1,
+            "termFrequency" : 1
+          },
+          {
+            "token" : "ipod",
+            "start_offset" : 0,
+            "end_offset" : 6,
+            "type" : "SYNONYM",
+            "position" : 0,
+            "bytes" : "[69 70 6f 64]",
+            "positionLength" : 1,
+            "termFrequency" : 1
+          },
+          {
+            "token" : "r",
+            "start_offset" : 0,
+            "end_offset" : 6,
+            "type" : "SYNONYM",
+            "position" : 0,
+            "bytes" : "[72]",
+            "positionLength" : 1,
+            "termFrequency" : 1
+          },
+          {
+            "token" : "ipad",
+            "start_offset" : 0,
+            "end_offset" : 6,
+            "type" : "SYNONYM",
+            "position" : 0,
+            "bytes" : "[69 70 61 64]",
+            "positionLength" : 1,
+            "termFrequency" : 1
+          }
+        ]
+      },
+...
+```
+
 a. How did you transform the product names (if different than previously)?
+
+I apply the same text normalization steps as level2.
+
 
 b. What threshold score did you use?
 
+Cosine similarity >= 0.75
+
 c. Were you able to find the additional results by matching synonyms?
+
+Not always for the three test cases listed in the instructions: `earbuds`, `nespresso`, and `dslr`.
+
+| query     | synonyms in synonyms.csv                                                                                 | n_hits (w/o synonyms) | n_hits (with synonyms) | Getting more results with synonym matching? |
+|-----------|----------------------------------------------------------------------------------------------------------|-----------------------|------------------------|---------------------------------------------|
+| earbuds   | earbuds,aerosport                                                                                        | 1205                  | 1076                   | FALSE                                       |
+| nespresso | NULL                                                                                                     | 8                     | 8                      | N/A                                         |
+| dslr      | lens,dslr,slr,telephoto<br/>dslr,slr,300mm,lens<br/>300mm,200mm,85mm,250mm,dslr,telephoto,slr,70mm,105mm | 2837                  | 3802                   | TRUE                                        |
+
+Likely explanations:
+- The reduced results for `earbuds` are not yet explainable
+- The unchanged result count for `nespresso` is because of a lack of synonyms for origin word
+- The increased results for `dslr` makes sense given the rich set of synonyms it has
+
 
 **4. For classifying reviews:**
 
-a. What precision (P@1) were you able to achieve?
-
-b. What fastText parameters did you use?
-
-c. How did you transform the review content?
-
-d. What else did you try and learn?
+Level 4 is optional. Due to time constraint, I will have to leave it for a later time and not include it for week2 submission :(
 
 ---
 
@@ -194,6 +312,3 @@ but not Porter?**
 
 A1: TODO
 
-```
-
-```
