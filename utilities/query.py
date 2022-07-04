@@ -1,19 +1,19 @@
 # A simple client for querying driven by user input on the command line.  Has hooks for the various
 # weeks (e.g. query understanding).  See the main section at the bottom of the file
-import warnings
-
-from opensearchpy import OpenSearch
-
-warnings.filterwarnings("ignore", category=FutureWarning)
 import argparse
-import fileinput
+
+# import fileinput
 import json
 import logging
 import os
+import warnings
 from getpass import getpass
 from urllib.parse import urljoin
 
 import pandas as pd
+from opensearchpy import OpenSearch
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -51,7 +51,10 @@ def create_prior_queries(
                 wgt = doc_id_weights[
                     doc
                 ]  # This should be the number of clicks or whatever
-                click_prior_query += "%s^%.3f  " % (doc, wgt / query_times_seen)
+                click_prior_query += "%s^%.3f  " % (
+                    doc,
+                    wgt / query_times_seen,
+                )
             except KeyError as ke:
                 pass  # nothing to do in this case, it just means we can't find priors for this doc
     return click_prior_query
@@ -66,7 +69,14 @@ def create_query(
     sortDir="desc",
     size=10,
     source=None,
+    use_synonyms: bool = False,
 ):
+
+    if use_synonyms:
+        name_field: str = "name.synonyms"
+    else:
+        name_field = "name"
+
     query_obj = {
         "size": size,
         "sort": [{sort: {"order": sortDir}}],
@@ -78,11 +88,13 @@ def create_query(
                         "should": [  #
                             {
                                 "match": {
-                                    "name": {
+                                    name_field: {
                                         "query": user_query,
                                         "fuzziness": "1",
                                         "prefix_length": 2,
-                                        # short words are often acronyms or usually not misspelled, so don't edit
+                                        # short words are often acronyms
+                                        #   or usually not misspelled,
+                                        #   so don't edit
                                         "boost": 0.01,
                                     }
                                 }
@@ -103,7 +115,7 @@ def create_query(
                                     "slop": "6",
                                     "minimum_should_match": "2<75%",
                                     "fields": [
-                                        "name^10",
+                                        f"{name_field}^10",
                                         "name.hyphens^10",
                                         "shortDescription^5",
                                         "longDescription^5",
@@ -143,19 +155,28 @@ def create_query(
                     {
                         "filter": {"exists": {"field": "salesRankShortTerm"}},
                         "gauss": {
-                            "salesRankShortTerm": {"origin": "1.0", "scale": "100"}
+                            "salesRankShortTerm": {
+                                "origin": "1.0",
+                                "scale": "100",
+                            }
                         },
                     },
                     {
                         "filter": {"exists": {"field": "salesRankMediumTerm"}},
                         "gauss": {
-                            "salesRankMediumTerm": {"origin": "1.0", "scale": "1000"}
+                            "salesRankMediumTerm": {
+                                "origin": "1.0",
+                                "scale": "1000",
+                            }
                         },
                     },
                     {
                         "filter": {"exists": {"field": "salesRankLongTerm"}},
                         "gauss": {
-                            "salesRankLongTerm": {"origin": "1.0", "scale": "1000"}
+                            "salesRankLongTerm": {
+                                "origin": "1.0",
+                                "scale": "1000",
+                            }
                         },
                     },
                     {"script_score": {"script": "0.0001"}},
@@ -163,6 +184,7 @@ def create_query(
             }
         },
     }
+    # print(json.dumps(query_obj, indent=4))
     if click_prior_query is not None and click_prior_query != "":
         query_obj["query"]["function_score"]["query"]["bool"]["should"].append(
             {
@@ -184,7 +206,14 @@ def create_query(
     return query_obj
 
 
-def search(client, user_query, index="bbuy_products", sort="_score", sortDir="desc"):
+def search(
+    client,
+    user_query,
+    index="bbuy_products",
+    sort="_score",
+    sortDir="desc",
+    use_synonyms: bool = False,
+):
     #### W3: classify the query
     #### W3: create filters and boosts
     # Note: you may also want to modify the `create_query` method above
@@ -195,10 +224,15 @@ def search(client, user_query, index="bbuy_products", sort="_score", sortDir="de
         sort=sort,
         sortDir=sortDir,
         source=["name", "shortDescription"],
+        use_synonyms=use_synonyms,
     )
     logging.info(query_obj)
     response = client.search(query_obj, index=index)
-    if response and response["hits"]["hits"] and len(response["hits"]["hits"]) > 0:
+    if (
+        response
+        and response["hits"]["hits"]
+        and len(response["hits"]["hits"]) > 0
+    ):
         hits = response["hits"]["hits"]
         print(json.dumps(response, indent=2))
 
@@ -206,7 +240,10 @@ def search(client, user_query, index="bbuy_products", sort="_score", sortDir="de
 if __name__ == "__main__":
     host = "localhost"
     port = 9200
-    auth = ("admin", "admin")  # For testing only. Don't store credentials in code.
+    auth = (
+        "admin",
+        "admin",
+    )  # For testing only. Don't store credentials in code.
     parser = argparse.ArgumentParser(description="Build LTR.")
     general = parser.add_argument_group("general")
     general.add_argument(
@@ -225,8 +262,21 @@ if __name__ == "__main__":
         "--user",
         help="The OpenSearch admin.  If this is set, the program will prompt for password too. If not set, use default of admin/admin",
     )
+    general.add_argument(
+        "--synonyms",
+        action="store_true",
+        help=(
+            "synonyms option. "
+            "If this is set, name.synonyms will replace name in search query"
+        ),
+    )
 
     args = parser.parse_args()
+    if bool(args.synonyms):
+        print(
+            f"synonyms == {args.synonyms} is requested; "
+            "use ``name.synonyms`` in search query"
+        )
 
     if len(vars(args)) == 0:
         parser.print_usage()
@@ -251,12 +301,33 @@ if __name__ == "__main__":
         ssl_show_warn=False,
     )
     index_name = args.index
+    use_synonyms: bool = args.synonyms
     query_prompt = "\nEnter your query (type 'Exit' to exit or hit ctrl-c):"
-    print(query_prompt)
-    for line in fileinput.input():
-        query = line.rstrip()
-        if query == "Exit":
+    while True:
+        try:
+            query: str = str(input(query_prompt)).rstrip()
+        except KeyboardInterrupt:
             break
-        search(client=opensearch, user_query=query, index=index_name)
+        else:
+            if query.lower() == "exit":
+                break
+            else:
+                search(
+                    client=opensearch,
+                    user_query=query,
+                    index=index_name,
+                    use_synonyms=use_synonyms,
+                )
 
-        print(query_prompt)
+    # for line in fileinput.input():
+    #     query = line.rstrip()
+    #     if query == "Exit":
+    #         break
+    #     search(
+    #         client=opensearch,
+    #         user_query=query,
+    #         index=index_name,
+    #         use_synonyms=use_synonyms,
+    #     )
+
+    #     print(query_prompt)
