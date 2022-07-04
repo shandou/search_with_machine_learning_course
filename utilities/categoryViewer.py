@@ -1,7 +1,7 @@
-import sys
-import os
-import xml.etree.ElementTree as ET
 import argparse
+import os
+import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # Location for category data

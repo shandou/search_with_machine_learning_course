@@ -1,10 +1,10 @@
 # From Dmitiriy Shvadskiy https://github.com/dshvadskiy/search_with_machine_learning_course/blob/main/index_queries.py
+import logging
+
 import click
 import pandas as pd
 from opensearchpy import OpenSearch
 from opensearchpy.helpers import bulk
-
-import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

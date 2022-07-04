@@ -1,22 +1,19 @@
 # From https://github.com/dshvadskiy/search_with_machine_learning_course/blob/main/index_products.py
+import concurrent.futures
+import glob
+import json
+import logging
+import os
+from pathlib import Path
+from time import perf_counter
+
+import click
+import fasttext
 import opensearchpy
 import requests
 from lxml import etree
-
-import os
-import click
-import glob
 from opensearchpy import OpenSearch
 from opensearchpy.helpers import bulk
-import logging
-import fasttext
-from pathlib import Path
-import requests
-import json
-
-from time import perf_counter
-import concurrent.futures
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
