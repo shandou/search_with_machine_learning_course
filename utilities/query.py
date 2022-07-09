@@ -118,7 +118,7 @@ def create_query(
                                     "slop": "6",
                                     "minimum_should_match": "2<75%",
                                     "fields": [
-                                        f"{name_field}^10",
+                                        "name^10",
                                         "name.hyphens^10",
                                         "shortDescription^5",
                                         "longDescription^5",
@@ -127,7 +127,6 @@ def create_query(
                                         "manufacturer",
                                         "features",
                                         "categoryPath",
-                                        "name_synonyms",
                                     ],
                                 }
                             },

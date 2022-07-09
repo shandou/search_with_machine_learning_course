@@ -15,6 +15,9 @@ from lxml import etree
 from opensearchpy import OpenSearch
 from opensearchpy.helpers import bulk
 
+### W4: S1: Import the sentence transformer library.  Note: you may need to pip install it as we've noticed it doesn't always get installed properly despite being in our requirements.txt
+
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(format="%(levelname)s:%(message)s")
@@ -157,33 +160,9 @@ def get_opensearch():
     return client
 
 
-def annotate_document(doc, doc_url):
-    # payload = json.dumps(doc)
-    payload = json.dumps(doc)
-    # logger.info(f"Sending doc: {payload} to {doc_url}")
-    headers = {"Content-Type": "application/json"}
-    response = requests.request("POST", doc_url, headers=headers, data=payload)
-    logger.info(f"Annotation response: {response.status_code}")
-    name_syns = response.json()
-    if (
-        name_syns is not None
-        and len(name_syns) > 0
-        and name_syns["name_synonyms"] is not None
-    ):
-        doc["name_synonyms"] = name_syns["name_synonyms"]
-        logger.info(f"Adding: {name_syns} to document: {doc}")
-    else:
-        logger.info(f"Invalid synonyms response: {name_syns}")
-
-
-def index_file(
-    file,
-    index_name,
-    synonyms=False,
-    documents_url="http://localhost:5000/documents/annotate",
-    reduced=False,
-):
+def index_file(file, index_name, reduced=False):
     docs_indexed = 0
+    ### W4: S1: Load the model.  # We do this here to avoid threading issues
     client = get_opensearch()
     logger.info(f"Processing file : {file}")
     tree = etree.parse(file)
@@ -205,10 +184,10 @@ def index_file(
             or "Movies & Music" in doc["categoryPath"]
         ):
             continue
-        if synonyms:
-            annotate_document(doc, documents_url)
-            logger.info(f"Added Syns: {doc}")
-        docs.append({"_index": index_name, "_id": doc["sku"][0], "_source": doc})
+        ### W4: S2: Encode the names
+        docs.append(
+            {"_index": index_name, "_id": doc["sku"][0], "_source": doc}
+        )
         # docs.append({'_index': index_name, '_source': doc})
         docs_indexed += 1
         if docs_indexed % 200 == 0:
@@ -229,19 +208,8 @@ def index_file(
     default="bbuy_products",
     help="The name of the index to write to",
 )
-@click.option("--workers", "-w", default=8, help="The name of the index to write to")
 @click.option(
-    "--documents_url",
-    "-d",
-    default="http://localhost:5000/documents/annotate",
-    help="The location of the Flask App endpoint, something like http://localhost:5000/documents/annotate",
-)
-@click.option(
-    "--synonyms",
-    is_flag=True,
-    show_default=True,
-    default=False,
-    help="If true, add synonyms to the document using the --documents_url endpoint.",
+    "--workers", "-w", default=8, help="The name of the index to write to"
 )
 @click.option(
     "--reduced",
@@ -255,27 +223,28 @@ def main(
     index_name: str,
     reduced: bool,
     workers: int,
-    synonyms: bool,
     documents_url: str,
 ):
     logger.info(
-        f"Indexing {source_dir} to {index_name} with {workers} workers, synonyms is {synonyms} and the reduced flag set to {reduced}.  Documents URL is {documents_url}"
+        f"Indexing {source_dir} to {index_name} with {workers} workers, the reduced flag set to {reduced}."
     )
     files = glob.glob(source_dir + "/*.xml")
     docs_indexed = 0
     start = perf_counter()
-    with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
+    with concurrent.futures.ProcessPoolExecutor(
+        max_workers=workers
+    ) as executor:
         futures = [
-            executor.submit(
-                index_file, file, index_name, synonyms, documents_url, reduced
-            )
+            executor.submit(index_file, file, index_name, reduced)
             for file in files
         ]
         for future in concurrent.futures.as_completed(futures):
             docs_indexed += future.result()
 
     finish = perf_counter()
-    logger.info(f"Done. Total docs: {docs_indexed} in {(finish - start)/60} minutes")
+    logger.info(
+        f"Done. Total docs: {docs_indexed} in {(finish - start)/60} minutes"
+    )
 
 
 if __name__ == "__main__":
