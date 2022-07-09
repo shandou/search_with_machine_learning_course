@@ -1,6 +1,6 @@
 # Implements various click models
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def binary_func(x):
@@ -34,9 +34,7 @@ def apply_click_model(
 ):
     if click_model_type == "binary":
         print("Binary click model")
-        data_frame["grade"] = data_frame["clicks"].apply(
-            lambda x: binary_func(x)
-        )
+        data_frame["grade"] = data_frame["clicks"].apply(lambda x: binary_func(x))
         if downsample:
             data_frame = down_sample_buckets(data_frame)
     elif click_model_type == "ctr":
@@ -50,8 +48,7 @@ def apply_click_model(
         print("Beta click model")
         clicks_alpha = data_frame["clicks"] + alpha
         data_frame["grade"] = (
-            (clicks_alpha)
-            / ((data_frame["num_impressions"] + beta) + (clicks_alpha))
+            (clicks_alpha) / ((data_frame["num_impressions"] + beta) + (clicks_alpha))
         ).fillna(0)
         if downsample:
             data_frame = down_sample_continuous(data_frame)
@@ -59,10 +56,9 @@ def apply_click_model(
         print("CTR Quantiles click model")
         data_frame["grade"] = (
             pd.qcut(
-                (
-                    data_frame["clicks"]
-                    / (data_frame["num_impressions"] + prior)
-                ).fillna(0),
+                (data_frame["clicks"] / (data_frame["num_impressions"] + prior)).fillna(
+                    0
+                ),
                 quantiles,
                 labels=False,
             )
@@ -70,9 +66,7 @@ def apply_click_model(
         )
         if downsample:
             data_frame = down_sample_continuous(data_frame)
-    elif (
-        click_model_type == "beta_quantiles"
-    ):  # similar to step, but quantiles
+    elif click_model_type == "beta_quantiles":  # similar to step, but quantiles
         print("Beta quantiles click model")
         clicks_alpha = data_frame["clicks"] + alpha
         data_frame["grade"] = (
@@ -91,9 +85,7 @@ def apply_click_model(
     elif click_model_type == "heuristic":
         print("Heuristic click model")
         data_frame["grade"] = (
-            (
-                data_frame["clicks"] / (data_frame["num_impressions"] + prior)
-            ).fillna(0)
+            (data_frame["clicks"] / (data_frame["num_impressions"] + prior)).fillna(0)
             # .apply(lambda x: step(x))
             .apply(step)
         )
@@ -107,9 +99,9 @@ def apply_click_model(
 # https://stackoverflow.com/questions/55119651/downsampling-for-more-than-2-classes
 def down_sample_buckets(data_frame):
     g = data_frame.groupby("grade", group_keys=False)
-    return pd.DataFrame(
-        g.apply(lambda x: x.sample(g.size().min()))
-    ).reset_index(drop=True)
+    return pd.DataFrame(g.apply(lambda x: x.sample(g.size().min()))).reset_index(
+        drop=True
+    )
 
 
 # Generate the probabilities for our grades and then use that to sample from

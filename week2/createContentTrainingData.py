@@ -182,22 +182,20 @@ def _label_filename(filename):
             and child.find("name").text is not None
             and child.find("categoryPath") is not None
             and len(child.find("categoryPath")) > 0
-            and child.find("categoryPath")[
-                len(child.find("categoryPath")) - 1
-            ][0].text
+            and child.find("categoryPath")[len(child.find("categoryPath")) - 1][0].text
             is not None
             and child.find("categoryPath")[0][0].text == "cat00000"
             and child.find("categoryPath")[1][0].text != "abcat0600000"
         ):
             # Choose last element in categoryPath as the leaf categoryId or name
             if names_as_labels:
-                cat = child.find("categoryPath")[
-                    len(child.find("categoryPath")) - 1
-                ][1].text.replace(" ", "_")
+                cat = child.find("categoryPath")[len(child.find("categoryPath")) - 1][
+                    1
+                ].text.replace(" ", "_")
             else:
-                cat = child.find("categoryPath")[
-                    len(child.find("categoryPath")) - 1
-                ][0].text
+                cat = child.find("categoryPath")[len(child.find("categoryPath")) - 1][
+                    0
+                ].text
             # Replace newline chars with spaces so fastText doesn't complain
             name = child.find("name").text.replace("\n", " ")
             labels.append((cat, transform_name(name)))

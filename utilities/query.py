@@ -1,7 +1,6 @@
 # A simple client for querying driven by user input on the command line.  Has hooks for the various
 # weeks (e.g. query understanding).  See the main section at the bottom of the file
 import argparse
-
 # import fileinput
 import json
 import logging
@@ -230,11 +229,7 @@ def search(
     )
     logging.info(query_obj)
     response = client.search(query_obj, index=index)
-    if (
-        response
-        and response["hits"]["hits"]
-        and len(response["hits"]["hits"]) > 0
-    ):
+    if response and response["hits"]["hits"] and len(response["hits"]["hits"]) > 0:
         hits = response["hits"]["hits"]
         print(json.dumps(response, indent=2))
 

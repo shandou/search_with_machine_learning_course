@@ -93,9 +93,7 @@ class TextNormalizer:
 
     def lemmatize(self) -> TextNormalizer:
         self._nltk_resource_mananger()
-        self.tokens = [
-            WordNetLemmatizer().lemmatize(token) for token in self.tokens
-        ]
+        self.tokens = [WordNetLemmatizer().lemmatize(token) for token in self.tokens]
         return self
 
     def done(self) -> str:
@@ -120,9 +118,7 @@ def normalize_titles(
     """
 
     # I/O paths setups
-    input_file_path: pathlib.Path = (
-        pathlib.Path(DATA_DIR_PATH) / input_filename
-    )
+    input_file_path: pathlib.Path = pathlib.Path(DATA_DIR_PATH) / input_filename
     output_file_path: pathlib.Path = (
         pathlib.Path(DATA_DIR_PATH) / f"{output_prefix}_{input_filename}"
     )

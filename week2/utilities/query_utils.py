@@ -1,5 +1,6 @@
 import math
 
+
 # some helpful tools for dealing with queries
 def create_stats_query(aggs, extended=True):
     print("Creating stats query from %s" % aggs)

@@ -1,13 +1,12 @@
 # Some handy utilities for dealing with searches
 
 import json
-
-import query_utils as qu
-import ltr_utils as lu
-from opensearchpy import NotFoundError
-import pandas as pd
 import os
 
+import ltr_utils as lu
+import pandas as pd
+import query_utils as qu
+from opensearchpy import NotFoundError
 
 # Given a Test DataFrame, run the queries against the OpenSearch
 
@@ -32,9 +31,7 @@ def evaluate_test_set(
             "Precision can't be greater than the fetch size, changing the precision to be same as size"
         )
         precision = size
-    test_data = test_data.sample(frac=1).reset_index(
-        drop=True
-    )  # shuffle things
+    test_data = test_data.sample(frac=1).reset_index(drop=True)  # shuffle things
     query_gb = test_data.groupby("query", sort=False)  # small
     prior_clicks_gb = prior_clicks_df.groupby(["query"])  # large
     source = ["sku", "name"]
@@ -56,9 +53,7 @@ def evaluate_test_set(
     type = []
     score = []
     found = []  # boolean indicating whether this result was a match or not
-    new = (
-        []
-    )  # boolean indicating whether this query was in the training set or not
+    new = []  # boolean indicating whether this query was in the training set or not
     results = {
         "query": q,
         "sku": sku,
@@ -92,10 +87,7 @@ def evaluate_test_set(
         seen = False
         try:
             prior_clicks_for_query = prior_clicks_gb.get_group(key)
-            if (
-                prior_clicks_for_query is not None
-                and len(prior_clicks_for_query) > 0
-            ):
+            if prior_clicks_for_query is not None and len(prior_clicks_for_query) > 0:
                 prior_doc_ids = prior_clicks_for_query.sku.drop_duplicates()
                 prior_doc_id_weights = (
                     prior_clicks_for_query.sku.value_counts()
@@ -239,11 +231,7 @@ def __judge_hits(
     except Exception as re:
         print(re, query_object)
     else:
-        if (
-            response
-            and response["hits"]["hits"]
-            and len(response["hits"]["hits"]) > 0
-        ):
+        if response and response["hits"]["hits"] and len(response["hits"]["hits"]) > 0:
             hits = response["hits"]["hits"]
             # Evaluate how many SKUs are in the top X results
             limit = len(hits)
@@ -281,9 +269,7 @@ def calculate_precision(results, type, num_queries_no_results, precision=10):
 
 def calculate_mrr(results, type, num_queries_no_results):
     num_q_total = len(results["query"].unique()) + num_queries_no_results
-    typed_results = results[
-        (results["type"] == type) & (results["found"] == True)
-    ]
+    typed_results = results[(results["type"] == type) & (results["found"] == True)]
     gb = typed_results.groupby(["query"])
     min_ranks = gb["rank"].min()
     r_ranks = 1 / min_ranks
@@ -317,19 +303,11 @@ def analyze_results(
     )
     print(
         "LTR Simple MRR is %.3f"
-        % (
-            calculate_mrr(
-                results_df, "ltr_simple", len(no_results_df["ltr_simple"])
-            )
-        )
+        % (calculate_mrr(results_df, "ltr_simple", len(no_results_df["ltr_simple"])))
     )
     print(
         "Hand tuned MRR is %.3f"
-        % (
-            calculate_mrr(
-                results_df, "hand_tuned", len(no_results_df["hand_tuned"])
-            )
-        )
+        % (calculate_mrr(results_df, "hand_tuned", len(no_results_df["hand_tuned"])))
     )
     print(
         "LTR Hand Tuned MRR is %.3f"
@@ -407,10 +385,7 @@ def analyze_results(
     ]
     ltr_simple_better = simple_join[
         (simple_join["rank_simple"] > simple_join["rank_ltr"])
-        & (
-            (simple_join["found_simple"] == True)
-            | (simple_join["found_ltr"] == True)
-        )
+        & ((simple_join["found_simple"] == True) | (simple_join["found_ltr"] == True))
     ]
     simple_ltr_equal = simple_join[
         (simple_join["rank_simple"] == simple_join["rank_ltr"])
@@ -427,16 +402,14 @@ def analyze_results(
         suffixes=("_ht", "_ltr"),
     )
     ht_better = ht_join[
-        (ht_join["rank_ht"] < ht_join["rank_ltr"])
-        & (ht_join["found_ht"] == True)
+        (ht_join["rank_ht"] < ht_join["rank_ltr"]) & (ht_join["found_ht"] == True)
     ]
     ltr_ht_better = ht_join[
         (ht_join["rank_ht"] > ht_join["rank_ltr"])
         & ((ht_join["found_ht"] == True) | (ht_join["found_ltr"] == True))
     ]
     ht_ltr_equal = ht_join[
-        (ht_join["rank_ht"] == ht_join["rank_ltr"])
-        & (ht_join["found_ht"] == True)
+        (ht_join["rank_ht"] == ht_join["rank_ltr"]) & (ht_join["found_ht"] == True)
     ]
     print(
         "HT better: %s\tLTR_HT Better: %s\tEqual: %s"
@@ -447,9 +420,7 @@ def analyze_results(
     if os.path.isdir(analysis_output_dir) == False:
         os.mkdir(analysis_output_dir)
     # OUtput our analysis
-    simple_better.to_csv(
-        "%s/simple_better.csv" % analysis_output_dir, index=False
-    )
+    simple_better.to_csv("%s/simple_better.csv" % analysis_output_dir, index=False)
     ltr_simple_better.to_csv(
         "%s/ltr_simple_better.csv" % analysis_output_dir, index=False
     )
@@ -457,21 +428,15 @@ def analyze_results(
         "%s/simple_ltr_equal.csv" % analysis_output_dir, index=False
     )
     ht_better.to_csv("%s/ht_better.csv" % analysis_output_dir, index=False)
-    ltr_ht_better.to_csv(
-        "%s/ltr_ht_better.csv" % analysis_output_dir, index=False
-    )
-    ht_ltr_equal.to_csv(
-        "%s/ht_ltr_equal.csv" % analysis_output_dir, index=False
-    )
+    ltr_ht_better.to_csv("%s/ltr_ht_better.csv" % analysis_output_dir, index=False)
+    ht_ltr_equal.to_csv("%s/ht_ltr_equal.csv" % analysis_output_dir, index=False)
     # Output some subsamples where we did better on LTR AND the rank is in the top 20
     ltr_simple_top_20 = ltr_simple_better[ltr_simple_better["rank_ltr"] < 20]
     ltr_simple_top_20.to_csv(
         "%s/simple_ltr_better_r20.csv" % analysis_output_dir, index=False
     )
     ltr_ht_top_20 = ltr_ht_better[ltr_ht_better["rank_ltr"] < 20]
-    ltr_ht_top_20.to_csv(
-        "%s/ht_ltr_better_r20.csv" % analysis_output_dir, index=False
-    )
+    ltr_ht_top_20.to_csv("%s/ht_ltr_better_r20.csv" % analysis_output_dir, index=False)
     if analyze_explains:
         train_gb = train_df.groupby("query")
         print("Comparing simple vs LTR explains")
@@ -531,10 +496,7 @@ def compare_explains(
         click_prior_query = ""
         try:
             prior_clicks_for_query = train_gb.get_group(item.query)
-            if (
-                prior_clicks_for_query is not None
-                and len(prior_clicks_for_query) > 0
-            ):
+            if prior_clicks_for_query is not None and len(prior_clicks_for_query) > 0:
                 prior_doc_ids = prior_clicks_for_query.sku.drop_duplicates()
                 prior_doc_id_weights = (
                     prior_clicks_for_query.sku.value_counts()
@@ -663,9 +625,7 @@ def lookup_query(
             for item in click_group.itertuples():
                 sku = item.sku
                 try:
-                    doc = lookup_product(
-                        sku, opensearch, index=index, source=source
-                    )
+                    doc = lookup_product(sku, opensearch, index=index, source=source)
                 except NotFoundError as ne:
                     print("Couldn't find doc: %s" % sku)
                 else:
@@ -682,9 +642,7 @@ def lookup_query(
                         query_obj.pop("sort")
                         query_obj.pop("_source")
                         print("Explain query %s" % query_obj)
-                        response = opensearch.explain(
-                            index, sku, body=query_obj
-                        )
+                        response = opensearch.explain(index, sku, body=query_obj)
                         print(json.dumps(response, indent=4))
 
         else:

@@ -1,5 +1,6 @@
 import math
 
+
 # some helpful tools for dealing with queries
 def create_stats_query(aggs, extended=True):
     print("Creating stats query from %s" % aggs)
@@ -309,9 +310,7 @@ def create_query(
 
 def add_aggs(query_obj):
     query_obj["aggs"] = {
-        "department": {
-            "terms": {"field": "department.keyword", "min_doc_count": 1}
-        },
+        "department": {"terms": {"field": "department.keyword", "min_doc_count": 1}},
         "missing_images": {"missing": {"field": "image"}},
         "regularPrice": {
             "range": {

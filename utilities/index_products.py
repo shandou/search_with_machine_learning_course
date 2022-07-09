@@ -185,9 +185,7 @@ def index_file(file, index_name, reduced=False):
         ):
             continue
         ### W4: S2: Encode the names
-        docs.append(
-            {"_index": index_name, "_id": doc["sku"][0], "_source": doc}
-        )
+        docs.append({"_index": index_name, "_id": doc["sku"][0], "_source": doc})
         # docs.append({'_index': index_name, '_source': doc})
         docs_indexed += 1
         if docs_indexed % 200 == 0:
@@ -208,9 +206,7 @@ def index_file(file, index_name, reduced=False):
     default="bbuy_products",
     help="The name of the index to write to",
 )
-@click.option(
-    "--workers", "-w", default=8, help="The name of the index to write to"
-)
+@click.option("--workers", "-w", default=8, help="The name of the index to write to")
 @click.option(
     "--reduced",
     is_flag=True,
@@ -231,20 +227,15 @@ def main(
     files = glob.glob(source_dir + "/*.xml")
     docs_indexed = 0
     start = perf_counter()
-    with concurrent.futures.ProcessPoolExecutor(
-        max_workers=workers
-    ) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
         futures = [
-            executor.submit(index_file, file, index_name, reduced)
-            for file in files
+            executor.submit(index_file, file, index_name, reduced) for file in files
         ]
         for future in concurrent.futures.as_completed(futures):
             docs_indexed += future.result()
 
     finish = perf_counter()
-    logger.info(
-        f"Done. Total docs: {docs_indexed} in {(finish - start)/60} minutes"
-    )
+    logger.info(f"Done. Total docs: {docs_indexed} in {(finish - start)/60} minutes")
 
 
 if __name__ == "__main__":

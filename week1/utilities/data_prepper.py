@@ -1,14 +1,14 @@
 # This file processes our queries, runs them through OpenSearch against the BBuy Products index to fetch their "rank" and so they can be used properly in a click model
-from typing import List, Dict, Any
 import json
-import requests
+import os
+from typing import Any, Dict, List
 
 import ltr_utils as lu
 import numpy as np
 import pandas as pd
 import query_utils as qu
+import requests
 from opensearchpy import RequestError
-import os
 
 # from importlib import reload
 
@@ -71,9 +71,7 @@ class DataPrepper:
             "Splitting: %s and writing train to: %s and test to: %s in %s"
             % (file_to_split, split_train, split_test, output_dir)
         )
-        input_df = pd.read_csv(
-            file_to_split, parse_dates=["click_time", "query_time"]
-        )
+        input_df = pd.read_csv(file_to_split, parse_dates=["click_time", "query_time"])
         # input_df = input_df.astype({'click_time': 'datetime64', 'query_time':'datetime64'})
         input_df = self.filter_junk_clicks(input_df, verify_file, output_dir)
         # first we are going to split by date
@@ -83,15 +81,11 @@ class DataPrepper:
         # for testing, we should still allow for splitting into less rows
         if train_rows > 0:
             # if we are using less than the full set, then shuffle them
-            first = first.sample(frac=1).reset_index(
-                drop=True
-            )  # shuffle things
+            first = first.sample(frac=1).reset_index(drop=True)  # shuffle things
             first = first[: min(len(first), train_rows)]
         if test_rows > 0:
             # if we are using less than the full set, then shuffle them
-            second = second.sample(frac=1).reset_index(
-                drop=True
-            )  # shuffle things
+            second = second.sample(frac=1).reset_index(drop=True)  # shuffle things
             second = second[: min(len(second), test_rows)]
         # train, test = model_selection.train_test_split(input_df, test_size=args.split_test_size)
         # input_df = input_df.sample(frac=1).reset_index(drop=True)  # shuffle things
@@ -103,20 +97,10 @@ class DataPrepper:
     ## CAVEAT EMPTOR: WE ARE BUILDING A SYNTHETIC IMPRESSIONS DATA SET BECAUSE WE DON'T HAVE A PROPER ONE.
     #
     #
-    def synthesize_impressions(
-        self, clicks_df, min_impressions=20, min_clicks=5
-    ):
-        pairs = (
-            clicks_df.groupby(["query", "sku"])
-            .size()
-            .reset_index(name="clicks")
-        )
-        pairs["rank"] = pairs.groupby("query")["clicks"].rank(
-            "dense", ascending=False
-        )
-        pairs["num_impressions"] = pairs.groupby("query")["clicks"].transform(
-            "sum"
-        )
+    def synthesize_impressions(self, clicks_df, min_impressions=20, min_clicks=5):
+        pairs = clicks_df.groupby(["query", "sku"]).size().reset_index(name="clicks")
+        pairs["rank"] = pairs.groupby("query")["clicks"].rank("dense", ascending=False)
+        pairs["num_impressions"] = pairs.groupby("query")["clicks"].transform("sum")
         # cut off the extreme end of the long tail due to low confidence in the evidence
         pairs = pairs[
             (pairs["num_impressions"] >= min_impressions)
@@ -177,10 +161,7 @@ class DataPrepper:
             prior_clicks_for_query = query_gb.get_group(key)
             prior_doc_ids = None
             prior_doc_id_weights = None
-            if (
-                prior_clicks_for_query is not None
-                and len(prior_clicks_for_query) > 0
-            ):
+            if prior_clicks_for_query is not None and len(prior_clicks_for_query) > 0:
                 prior_doc_ids = prior_clicks_for_query.sku.drop_duplicates()
                 prior_doc_id_weights = (
                     prior_clicks_for_query.sku.value_counts()
@@ -200,9 +181,7 @@ class DataPrepper:
             )  # TODO: handle categories
             # Fetch way more than usual so we are likely to see our documents that have been clicked
             try:
-                response = self.opensearch.search(
-                    body=query_obj, index=self.index_name
-                )
+                response = self.opensearch.search(body=query_obj, index=self.index_name)
             except RequestError as re:
                 print(re, query_obj)
             else:
@@ -346,9 +325,7 @@ class DataPrepper:
         #     "IMPLEMENT ME: __log_ltr_query_features: Extract log features out of the LTR:EXT response and place in a data frame"
         # )
 
-        response = self.opensearch.search(
-            body=log_query, index=self.index_name
-        )
+        response = self.opensearch.search(body=log_query, index=self.index_name)
 
         # Loop over the hits structure returned by running `log_query` and
         #   then extract out the features from
@@ -364,9 +341,7 @@ class DataPrepper:
 
             # Extract feature value for current query/doc pair
             for feature in record["fields"]["_ltrlog"][0]["log_entry"]:
-                feature_result.update(
-                    {feature["name"]: feature.get("value", 0)}
-                )
+                feature_result.update({feature["name"]: feature.get("value", 0)})
 
             feature_results.append(feature_result)
 
@@ -388,15 +363,11 @@ class DataPrepper:
         #     feature_results["sku"].append(doc_id)
         #     # feature_results["name_match"].append(rng.random())
         # frame = pd.DataFrame(feature_results)
-        return frame.astype(
-            {"doc_id": "int64", "query_id": "int64", "sku": "int64"}
-        )
+        return frame.astype({"doc_id": "int64", "query_id": "int64", "sku": "int64"})
         # IMPLEMENT_END
 
     # Can try out normalizing data, but for XGb, you really don't have to since it is just finding splits
-    def normalize_data(
-        self, ranks_features_df, feature_set, normalize_type_map
-    ):
+    def normalize_data(self, ranks_features_df, feature_set, normalize_type_map):
         # we need to get some stats from OpenSearch and then use that to normalize our data
         agg_fields = []
         aggs = {}

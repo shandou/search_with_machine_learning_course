@@ -1,13 +1,12 @@
 # Some handy utilities for dealing with searches
 
 import json
-
-import query_utils as qu
-import ltr_utils as lu
-from opensearchpy import NotFoundError
-import pandas as pd
 import os
 
+import ltr_utils as lu
+import pandas as pd
+import query_utils as qu
+from opensearchpy import NotFoundError
 
 # Given a Test DataFrame, run the queries against the OpenSearch
 

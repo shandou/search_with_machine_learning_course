@@ -1,8 +1,10 @@
 # Utilities for working with XG Boost
-import xgboost as xgb
-from xgboost import plot_importance, plot_tree
-from matplotlib import pyplot as plt
 import json
+
+import xgboost as xgb
+from matplotlib import pyplot as plt
+from xgboost import plot_importance, plot_tree
+
 
 # Plots useful things like the tree and importance for display
 def plots(xgb_model, xgb_model_name, xgb_feat_map, xgb_plot):
@@ -16,9 +18,7 @@ def plots(xgb_model, xgb_model_name, xgb_feat_map, xgb_plot):
         num_trees = len(bst.get_dump(fmap=xgb_feat_map))
         print("Plotting trees: %s" % (num_trees - 1))
         model_plot = plot_tree(bst, fmap=xgb_feat_map, num_trees=num_trees - 1)
-        model_plot.figure.savefig(
-            "%s/%s_tree.png" % (xgb_plot, model_name), dpi=300
-        )
+        model_plot.figure.savefig("%s/%s_tree.png" % (xgb_plot, model_name), dpi=300)
         print("Plotting feature importance")
         impt_plt = plot_importance(bst, fmap=xgb_feat_map)
         impt_plt.figure.savefig(
@@ -47,7 +47,5 @@ def train(xgb_train_data, num_rounds=5, xgb_conf=None):
     #   The DMatrix is a 8761 x 8 matrix
     #   Columns consist of (assuming the case of 7 features: feature_index:feature_value)
     #       0.0000 1:12.4681       2:12.4681       3:0.0000        4:10.8821       5:13.7044       6:2.7000        7:75.0000
-    bst = xgb.train(
-        xgb_params, xgb.DMatrix(xgb_train_data), num_boost_round=num_rounds
-    )
+    bst = xgb.train(xgb_params, xgb.DMatrix(xgb_train_data), num_boost_round=num_rounds)
     return bst, xgb_params

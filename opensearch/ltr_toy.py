@@ -3,26 +3,25 @@ import sys
 import tempfile
 from urllib.parse import urljoin
 
+import matplotlib.pyplot as plt
 import requests
 import xgboost as xgb
 from opensearchpy import OpenSearch
-import matplotlib.pyplot as plt
-from xgboost import XGBClassifier
-from xgboost import plot_tree
+from xgboost import XGBClassifier, plot_tree
 
 #######################
 #
 # Setup work
 #
 #######################
-host = 'localhost'
+host = "localhost"
 port = 9200
 base_url = "https://{}:{}/".format(host, port)
-auth = ('admin', 'admin')  # For testing only. Don't store credentials in code.
+auth = ("admin", "admin")  # For testing only. Don't store credentials in code.
 
 # Create the client with SSL/TLS enabled, but hostname and certificate verification disabled.
 client = OpenSearch(
-    hosts=[{'host': host, 'port': port}],
+    hosts=[{"host": host, "port": port}],
     http_compress=True,  # enables gzip compression for request bodies
     http_auth=auth,
     # client_cert = client_cert_path,
@@ -40,77 +39,79 @@ docs = [
         "body": "The quick red fox jumped over the lazy brown dogs.",
         "price": "5.99",
         "in_stock": True,
-        "category": "childrens"},
+        "category": "childrens",
+    },
     {
         "id": "doc_b",
         "title": "Fox wins championship",
         "body": "Wearing all red, the Fox jumped out to a lead in the race over the Dog.",
         "price": "15.13",
         "in_stock": True,
-        "category": "sports"},
+        "category": "sports",
+    },
     {
         "id": "doc_c",
         "title": "Lead Paint Removal",
         "body": "All lead must be removed from the brown and red paint.",
         "price": "150.21",
         "in_stock": False,
-        "category": "instructional"},
+        "category": "instructional",
+    },
     {
         "id": "doc_d",
         "title": "The Three Little Pigs Revisited",
         "price": "3.51",
         "in_stock": True,
         "body": "The big, bad wolf huffed and puffed and blew the house down. The end.",
-        "category": "childrens"},
+        "category": "childrens",
+    },
     {
         "id": "doc_e",
         "title": "Pigs in a Blanket and Other Recipes",
         "price": "27.50",
         "in_stock": True,
         "body": "Pigs in a blanket aren't as cute as you would think given it's a food and not actual pigs wrapped in blankets.",
-        "category": "instructional"},
+        "category": "instructional",
+    },
     {
         "id": "doc_f",
         "title": "Dogs are the best",
         "body": "Dogs beat cats every day of the week and twice on Sunday. A dog is always up for doing something.  Since there are so many dog breeds, there is a dog for everyone!",
         "price": "50.99",
         "in_stock": True,
-        "category": "childrens"},
+        "category": "childrens",
+    },
     {
         "id": "doc_g",
         "title": "Dog",
         "body": "Dogs rule",
         "price": "5.99",
         "in_stock": True,
-        "category": "childrens"},
+        "category": "childrens",
+    },
     {
         "id": "doc_h",
         "title": "Dog: The bounty hunter: living in the red",
         "body": "Dog is a bounty hunter who goes on pretend missions with his friends, one of whom is the Fox",
         "price": "125.99",
         "in_stock": True,
-        "category": "sports"},
+        "category": "sports",
+    },
 ]
 
 # Create a new index
-index_name = 'searchml_ltr'
+index_name = "searchml_ltr"
 index_body = {
-    'settings': {
-        'index': {
-            'query': {
-                'default_field': "body"
-            }
-        }
-    },
+    "settings": {"index": {"query": {"default_field": "body"}}},
     "mappings": {
         "properties": {
             "title": {"type": "text", "analyzer": "english"},
             "body": {"type": "text", "analyzer": "english"},
             "in_stock": {"type": "boolean"},
             "category": {"type": "keyword", "ignore_above": "256"},
-            "price": {"type": "float"}
+            "price": {"type": "float"},
         }
-    }
+    },
 }
 
 client.indices.delete(index_name, ignore_unavailable=True)
@@ -120,12 +121,7 @@ print("Indexing our documents")
 for doc in docs:
     doc_id = doc["id"]
     print("\tIndexing {}".format(doc_id))
-    client.index(
-        index=index_name,
-        body=doc,
-        id=doc_id,
-        refresh=True
-    )
+    client.index(index=index_name, body=doc, id=doc_id, refresh=True)
 
 # Verify they are in:
 print("We indexed:\n{}".format(client.cat.count(index_name, params={"v": "true"})))
@@ -156,57 +152,53 @@ print("\tCreate the new store response status: %s" % resp.status_code)
 #
 #######################
 featureset_name = "ltr_toy"
-headers = {"Content-Type": 'application/json'}
-featureset_path = urljoin(ltr_model_path + "/", "_featureset/{}".format(featureset_name))
+headers = {"Content-Type": "application/json"}
+featureset_path = urljoin(
+    ltr_model_path + "/", "_featureset/{}".format(featureset_name)
+)
 # Upload our feature set to our model
 body_query_feature_name = "body_query"
 title_query_feature_name = "title_query"
 price_func_feature_name = "price_func"
 print("\tUpload our features to the LTR storage")
-ltr_feature_set = {"featureset": {
-    "features": [
-        {  # Instead of using our multifield query_string match, break it out into parts
-            "name": title_query_feature_name,
-            "params": ["keywords"],
-            "template_language": "mustache",
-            "template": {
-                "match": {
-                    "title": "{{keywords}}"
-                }
-            }
-        },
-        {  # Instead of using our multifield query_string match, break it out into parts
-            "name": body_query_feature_name,
-            "params": ["keywords"],
-            "template_language": "mustache",
-            "template": {
-                "match": {
-                    "body": "{{keywords}}"
-                }
-            }
-        },
-        # factor in price, albeit naively for this purpose, in practice we should normalize it, which we will do in the project!
-        {
-            "name": ("%s" % price_func_feature_name),
-            "template_language": "mustache",
-            "template": {
-                "function_score": {
-                    "functions": [{
-                        "field_value_factor": {
-                            "field": "price",
-                            "missing": 0
-                        }
-                    }],
-                    "query": {
-                        "match_all": {}
+ltr_feature_set = {
+    "featureset": {
+        "features": [
+            {  # Instead of using our multifield query_string match, break it out into parts
+                "name": title_query_feature_name,
+                "params": ["keywords"],
+                "template_language": "mustache",
+                "template": {"match": {"title": "{{keywords}}"}},
+            },
+            {  # Instead of using our multifield query_string match, break it out into parts
+                "name": body_query_feature_name,
+                "params": ["keywords"],
+                "template_language": "mustache",
+                "template": {"match": {"body": "{{keywords}}"}},
+            },
+            # factor in price, albeit naively for this purpose, in practice we should normalize it, which we will do in the project!
+            {
+                "name": ("%s" % price_func_feature_name),
+                "template_language": "mustache",
+                "template": {
+                    "function_score": {
+                        "functions": [
+                            {"field_value_factor": {"field": "price", "missing": 0}}
+                        ],
+                        "query": {"match_all": {}},
                     }
-                }
-            }
-
-        }
-    ]
-}}
-resp = requests.post(featureset_path, headers=headers, data=json.dumps(ltr_feature_set), auth=auth, verify=False)
+                },
+            },
+        ]
+    }
+}
+resp = requests.post(
+    featureset_path,
+    headers=headers,
+    data=json.dumps(ltr_feature_set),
+    auth=auth,
+    verify=False,
+)
 
 #######################
 #
@@ -215,8 +207,9 @@ resp = requests.post(featureset_path, headers=headers, data=json.dumps(ltr_featu
 #######################
 # Create a place to store our judgments
 class Judgment:
-
-    def __init__(self, query, doc_id, display_name, grade=0, features=[], query_str=None):
+    def __init__(
+        self, query, doc_id, display_name, grade=0, features=[], query_str=None
+    ):
         self.query = query
         self.query_str = query_str
         self.doc_id = doc_id
@@ -226,9 +219,17 @@ class Judgment:
 
     # Modified from https://github.com/o19s/elasticsearch-ltr-demo/blob/master/train/judgments.py
     def toXGBFormat(self):
-        featuresAsStrs = ["%s:%s" % (idx + 1, feature.get('value', 0)) for idx, feature in enumerate(self.features)]
+        featuresAsStrs = [
+            "%s:%s" % (idx + 1, feature.get("value", 0))
+            for idx, feature in enumerate(self.features)
+        ]
         comment = "# %s\t%s" % (self.doc_id, self.query_str)
-        return "%s\tqid:%s\t%s %s" % (self.grade, self.query, "\t".join(featuresAsStrs), comment)
+        return "%s\tqid:%s\t%s %s" % (
+            self.grade,
+            self.query,
+            "\t".join(featuresAsStrs),
+            comment,
+        )
 
 
 # Create a map for tracking queries
@@ -240,38 +241,47 @@ judgments = {}
 for query in queries:
     # Used to get the original queries to create the judgments
     query_obj = {
-        'size': 5,
-        'query': {
-            'multi_match': {
-                'query': queries[query],
-                'fields': ['title^2', 'body']
-            }
-        }
+        "size": 5,
+        "query": {
+            "multi_match": {"query": queries[query], "fields": ["title^2", "body"]}
+        },
     }
-    print("################\nExecuting search: qid: {}; query: {}\n##########".format(query, queries[query]))
+    print(
+        "################\nExecuting search: qid: {}; query: {}\n##########".format(
+            query, queries[query]
+        )
+    )
     response = client.search(body=query_obj, index=index_name)
-    hits = response['hits']['hits']
+    hits = response["hits"]["hits"]
     if len(hits) > 0:
         print(
             "For each hit answer the question: 'Is this hit relevant(1) or not relevant(0) to the query: {}?':".format(
-                queries[query]))
+                queries[query]
+            )
+        )
         judge_vals = judgments.get(query)
         if judge_vals is None:
             judge_vals = []
             judgments[query] = judge_vals
         for hit in hits:
-            print("Title: {}\n\nBody: {}\n".format(hit['_source']['title'], hit['_source']['body']))
+            print(
+                "Title: {}\n\nBody: {}\n".format(
+                    hit["_source"]["title"], hit["_source"]["body"]
+                )
+            )
             print("Enter 0 or 1:")
             input = ""
             for input in sys.stdin.readline():
                 grade = input.rstrip()
                 if grade == "0" or grade == "1":
-                    judgment = Judgment(query, hit['_id'], hit['_source']['title'], int(grade))
+                    judgment = Judgment(
+                        query, hit["_id"], hit["_source"]["title"], int(grade)
+                    )
                     judge_vals.append(judgment)
                     break
                 elif grade == "skip" or grade == "s":
                     break
-                elif grade == "exit" or grade == 'e':
+                elif grade == "exit" or grade == "e":
                     input = grade  # set this back to the trimmed grade so we can exit the outer loop.  Very clunky!
                     break
             if input == "exit" or input == "e":
@@ -295,24 +305,18 @@ for (idx, item) in enumerate(judgments.items()):
         # significantly
         # Create our SLTR query, filtering so we only retrieve the doc id in question
         query_obj = {
-            'query': {
-                'bool': {
+            "query": {
+                "bool": {
                     "filter": [  # use a filter so that we don't actually score anything
-                        {
-                            "terms": {
-                                "_id": [judgment.doc_id]
-                            }
-                        },
+                        {"terms": {"_id": [judgment.doc_id]}},
                         {  # use the LTR query bring in the LTR feature set
                             "sltr": {
                                 "_name": "logged_featureset",
                                 "featureset": featureset_name,
                                 "store": ltr_store_name,
-                                "params": {
-                                    "keywords": queries[judgment.query]
-                                }
+                                "params": {"keywords": queries[judgment.query]},
                             }
-                        }
+                        },
                     ]
                 }
             },
@@ -321,10 +325,10 @@ for (idx, item) in enumerate(judgments.items()):
                 "ltr_log": {
                     "log_specs": {
                         "name": "log_entry",
-                        "named_query": "logged_featureset"
+                        "named_query": "logged_featureset",
                     }
                 }
-            }
+            },
         }
         # Run the query just like any other search
         response = client.search(body=query_obj, index=index_name)
@@ -332,15 +336,19 @@ for (idx, item) in enumerate(judgments.items()):
         # For each response, extract out the features and build our training features
         # We are going to do this by iterating through the hits, which should be in doc_ids order and put the
         # values back onto the Judgment object, which has a place to store these.
-        if response and len(response['hits']) > 0 and len(response['hits']['hits']) == 1:
-            hits = response['hits']['hits']
+        if (
+            response
+            and len(response["hits"]) > 0
+            and len(response["hits"]["hits"]) == 1
+        ):
+            hits = response["hits"]["hits"]
             # there should only be one hit
-            judgment.features = hits[0]['fields']['_ltrlog'][0]['log_entry']
+            judgment.features = hits[0]["fields"]["_ltrlog"][0]["log_entry"]
             # 		<grade> qid:<query_id> <feature_number>:<weight>... # <doc_id> <comments>
             # see https://xgboost.readthedocs.io/en/latest/tutorials/input_format.html
             xgb_format = judgment.toXGBFormat() + "\n"
             print(xgb_format)
-            train_file.write(bytes(xgb_format, 'utf-8'))
+            train_file.write(bytes(xgb_format, "utf-8"))
         else:
             print("Weirdness. Fix")
 
@@ -357,20 +365,21 @@ train_file.close()
 # We need to tell XGB what are features are called so that we can properly write out a model after training
 feat_map_file = tempfile.NamedTemporaryFile(delete=False)
 feat_map_file.write(bytes("0\tna\tq\n", "utf-8"))
-feat_map_file.write(bytes('1\t{}\tq\n'.format(title_query_feature_name), 'utf-8'))
-feat_map_file.write(bytes('2\t{}\tq\n'.format(body_query_feature_name), 'utf-8'))
-feat_map_file.write(bytes('3\t{}\tq\n'.format(price_func_feature_name), 'utf-8'))
+feat_map_file.write(bytes("1\t{}\tq\n".format(title_query_feature_name), "utf-8"))
+feat_map_file.write(bytes("2\t{}\tq\n".format(body_query_feature_name), "utf-8"))
+feat_map_file.write(bytes("3\t{}\tq\n".format(price_func_feature_name), "utf-8"))
 feat_map_file.close()
 dtrain = xgb.DMatrix(train_file.name)
-param = {'max_depth': 5,  'silent': 1, 'objective': 'reg:linear'}
+param = {"max_depth": 5, "silent": 1, "objective": "reg:linear"}
 num_round = 5
 print("Training XG Boost")
-bst = xgb.train(param, dtrain,
-                num_round)  # Do the training.  NOTE: in this toy example we did not use any hold out data
-model = bst.get_dump(fmap=feat_map_file.name, dump_format='json')
+bst = xgb.train(
+    param, dtrain, num_round
+)  # Do the training.  NOTE: in this toy example we did not use any hold out data
+model = bst.get_dump(fmap=feat_map_file.name, dump_format="json")
 
 # We need to escape entries for uploading to OpenSearch, per the docs
-model_str = '[' + ','.join(list(model)) + ']'
+model_str = "[" + ",".join(list(model)) + "]"
 
 # Create our metadata for uploading the model
 model_name = "ltr_toy_model"
@@ -380,8 +389,8 @@ os_model = {
         "name": model_name,
         "model": {
             "type": "model/xgboost+json",
-            "definition": '{"objective":"reg:linear", "splits":' + model_str + '}'
-        }
+            "definition": '{"objective":"reg:linear", "splits":' + model_str + "}",
+        },
     }
 }
 #######################
@@ -392,7 +401,9 @@ os_model = {
 # Upload the model to OpenSearch
 model_path = urljoin(featureset_path + "/", "_createmodel")
 print("Uploading our model to %s" % model_path)
-response = requests.post(model_path, data=json.dumps(os_model), headers=headers, auth=auth, verify=False)
+response = requests.post(
+    model_path, data=json.dumps(os_model), headers=headers, auth=auth, verify=False
+)
 print("\tResponse: %s" % response)
 
 #######################
@@ -403,12 +414,7 @@ print("\tResponse: %s" % response)
 # issue a search!
 print("Search with baseline")
 query_obj = {
-    'query': {
-        'multi_match': {
-            'query': queries[1],
-            'fields': ['title^2', 'body']
-        }
-    },
+    "query": {"multi_match": {"query": queries[1], "fields": ["title^2", "body"]}},
 }
 response = client.search(body=query_obj, index=index_name)
 print("Response:\n%s" % json.dumps(response, indent=True))
@@ -419,17 +425,19 @@ query_obj["rescore"] = {
     "query": {
         "rescore_query": {
             "sltr": {
-                "params": {
-                    "keywords": queries[1]
-                },
+                "params": {"keywords": queries[1]},
                 "model": model_name,
                 # Since we are using a named store, as opposed to simply '_ltr', we need to pass it in
                 "store": ltr_store_name,
-                "active_features": [title_query_feature_name, body_query_feature_name, price_func_feature_name]
+                "active_features": [
+                    title_query_feature_name,
+                    body_query_feature_name,
+                    price_func_feature_name,
+                ],
             }
         },
-        "rescore_query_weight": "2" # Magic number, but let's say LTR matches are 2x baseline matches
-    }
+        "rescore_query_weight": "2",  # Magic number, but let's say LTR matches are 2x baseline matches
+    },
 }
 response = client.search(body=query_obj, index=index_name)
 print("Response:\n%s" % json.dumps(response, indent=True))

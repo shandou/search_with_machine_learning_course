@@ -21,7 +21,6 @@ import search_utils as su
 import xgb_utils as xgbu
 from opensearchpy import OpenSearch
 
-
 if __name__ == "__main__":
     host = "localhost"
     port = 9200
@@ -301,9 +300,7 @@ if __name__ == "__main__":
         action="store_true",
         help="With --lookup_query, run explains for each query/sku pair",
     )
-    util_group.add_argument(
-        "--lookup_product", help="Given a SKU, return the product"
-    )
+    util_group.add_argument("--lookup_product", help="Given a SKU, return the product")
     util_group.add_argument(
         "--verify_products",
         action="store_true",
@@ -352,9 +349,7 @@ if __name__ == "__main__":
     feat_name = args.featureset_name
     index_name = args.index
     # Prep our data
-    data_prepper = dp.DataPrepper(
-        opensearch, feat_name, index_name, ltr_store_name
-    )
+    data_prepper = dp.DataPrepper(opensearch, feat_name, index_name, ltr_store_name)
     if args.split_input:
         # Split based on date.  All of our train data will be before a given date, and all test data will be after.
         # This simulates the real world and allows us to safely use prior clicks in our baseline retrieval and models
@@ -394,10 +389,7 @@ if __name__ == "__main__":
         featureset_path = urljoin(
             ltr_model_path + "/", "_featureset/{}".format(feat_name)
         )
-        print(
-            "Installing %s featureset at %s"
-            % (args.featureset, featureset_path)
-        )
+        print("Installing %s featureset at %s" % (args.featureset, featureset_path))
         with open(args.featureset) as json_file:
             the_feature_set = json.load(json_file)
             rsp = ltr.post_featureset(featureset_path, the_feature_set, auth)
@@ -406,9 +398,7 @@ if __name__ == "__main__":
     if args.upload_ltr_model:
         # delete any old model first
         ltr.delete_model(
-            urljoin(
-                ltr_model_path + "/", "_model/{}".format(args.xgb_model_name)
-            ),
+            urljoin(ltr_model_path + "/", "_model/{}".format(args.xgb_model_name)),
             auth,
         )
         featureset_path = urljoin(
@@ -447,20 +437,14 @@ if __name__ == "__main__":
             exit(2)
 
         if args.synthesize:
-            (
-                impressions_df,
-                query_ids_map,
-            ) = data_prepper.synthesize_impressions(
+            (impressions_df, query_ids_map,) = data_prepper.synthesize_impressions(
                 train_df,
                 min_impressions=args.min_impressions,
                 min_clicks=args.min_clicks,
             )
         else:
             # use the synthesize to feed into our generate
-            (
-                impressions_df,
-                query_ids_map,
-            ) = data_prepper.synthesize_impressions(
+            (impressions_df, query_ids_map,) = data_prepper.synthesize_impressions(
                 train_df,
                 min_impressions=args.min_impressions,
                 min_clicks=args.min_clicks,
@@ -472,18 +456,14 @@ if __name__ == "__main__":
                 drop=True
             )  # shuffle things
             # impressions_df = impressions_df[:args.generate_num_rows]
-            (
-                impressions_df,
-                query_ids_map,
-            ) = data_prepper.generate_impressions(
+            (impressions_df, query_ids_map,) = data_prepper.generate_impressions(
                 impressions_df,
                 query_ids_map,
                 min_impressions=args.min_impressions,
                 min_clicks=args.min_clicks,
             )  # impressions as a Pandas DataFrame
         print(
-            "Writing impressions to file: %s/%s"
-            % (output_dir, args.impressions_file)
+            "Writing impressions to file: %s/%s" % (output_dir, args.impressions_file)
         )
         impressions_df.to_csv(
             "%s/%s" % (output_dir, args.impressions_file), index=False
@@ -511,13 +491,8 @@ if __name__ == "__main__":
     #
     #####
     if args.create_xgb_training and args.impressions_file:
-        print(
-            "Loading impressions from %s/%s"
-            % (output_dir, args.impressions_file)
-        )
-        impressions_df = pd.read_csv(
-            "%s/%s" % (output_dir, args.impressions_file)
-        )
+        print("Loading impressions from %s/%s" % (output_dir, args.impressions_file))
+        impressions_df = pd.read_csv("%s/%s" % (output_dir, args.impressions_file))
 
         if impressions_df is not None:
             # We need a map of normalize types for our features.  Would be nice if we could store this on the featureset
@@ -526,9 +501,7 @@ if __name__ == "__main__":
                 with open(args.normalize_json) as json_file:
                     types = json.load(json_file)
                     for item in types:
-                        normalize_type_map[item["name"]] = item[
-                            "normalize_function"
-                        ]
+                        normalize_type_map[item["name"]] = item["normalize_function"]
             # We need our featureset
             with open(args.featureset) as json_file:
                 the_feature_set = json.load(json_file)
@@ -569,9 +542,7 @@ if __name__ == "__main__":
                     downsample=args.downsample,
                 )
                 # Now write out in XGB/SVM Rank format
-                print(
-                    "NAN counts: %s" % train_features_df.isna().any().count()
-                )
+                print("NAN counts: %s" % train_features_df.isna().any().count())
                 train_features_df = train_features_df.fillna(0)
                 train_features_df = train_features_df.sample(frac=1)  # shuffle
                 train_features_df.to_csv("%s/training.xgb.csv" % output_dir)
@@ -581,9 +552,7 @@ if __name__ == "__main__":
                     "%s/%s" % (output_dir, args.xgb_feat_map),
                 )
         else:
-            print(
-                "Unable to create training file, no ranks/features data available."
-            )
+            print("Unable to create training file, no ranks/features data available.")
 
     #############
     #
@@ -611,9 +580,7 @@ if __name__ == "__main__":
             "%s/%s" % (output_dir, args.xgb_model),
             objective=xgb_params.get("objective", "reg:logistic"),
         )
-        print(
-            "Saving XGB Binary model to %s/%s" % (output_dir, args.xgb_model)
-        )
+        print("Saving XGB Binary model to %s/%s" % (output_dir, args.xgb_model))
         bst.save_model("%s/%s" % (output_dir, args.xgb_model))
 
     # Output some useful XGB Plots using matplotlib: https://xgboost.readthedocs.io/en/stable/python/python_api.html#module-xgboost.plotting
@@ -638,9 +605,7 @@ if __name__ == "__main__":
     if args.xgb_test:
         # To test, we're going to calculate MAP by looking at how many "relevant" documents were in the top X of
         # our result set.
-        test_data = pd.read_csv(
-            args.xgb_test, parse_dates=["click_time", "query_time"]
-        )
+        test_data = pd.read_csv(args.xgb_test, parse_dates=["click_time", "query_time"])
         train_df = None
         # we use the training file for priors, but we must make sure we don't have leaks
         if (
@@ -669,9 +634,7 @@ if __name__ == "__main__":
             % "%s/%s"
             % (output_dir, args.xgb_test_output)
         )
-        results_df.to_csv(
-            "%s/%s" % (output_dir, args.xgb_test_output), index=False
-        )
+        results_df.to_csv("%s/%s" % (output_dir, args.xgb_test_output), index=False)
         no_results_df = pd.DataFrame(no_results)
         no_results_df.to_csv(
             "%s/%s.no_results" % (output_dir, args.xgb_test_output),
@@ -704,9 +667,7 @@ if __name__ == "__main__":
             parse_dates=["click_time", "query_time"],
         )
 
-        print(
-            "Analyzing results from %s/%s" % (output_dir, args.xgb_test_output)
-        )
+        print("Analyzing results from %s/%s" % (output_dir, args.xgb_test_output))
         results_df = pd.read_csv("%s/%s" % (output_dir, args.xgb_test_output))
         no_results_df = pd.read_csv(
             "%s/%s.no_results" % (output_dir, args.xgb_test_output)

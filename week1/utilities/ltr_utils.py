@@ -95,9 +95,7 @@ def create_sltr_hand_tuned_query(
     }
     if active_features is not None and len(active_features) > 0:
         sltr["active_features"] = active_features
-    query_obj["query"]["function_score"]["query"]["bool"]["should"].append(
-        sltr
-    )
+    query_obj["query"]["function_score"]["query"]["bool"]["should"].append(sltr)
     return query_obj, len(
         query_obj["query"]["function_score"]["query"]["bool"]["should"]
     )
@@ -286,10 +284,7 @@ def post_featureset(
 def delete_model(model_path, auth):
     print("Deleting model from %s" % model_path)
     response = requests.delete(model_path, auth=auth, verify=False)
-    print(
-        "\tDelete Model Response: %s: %s"
-        % (response.status_code, response.text)
-    )
+    print("\tDelete Model Response: %s: %s" % (response.status_code, response.text))
     return response
 
 
@@ -303,8 +298,5 @@ def upload_model(model_path, os_model, auth):
         auth=auth,
         verify=False,
     )
-    print(
-        "\tUpload Model Response: %s: %s"
-        % (response.status_code, response.text)
-    )
+    print("\tUpload Model Response: %s: %s" % (response.status_code, response.text))
     return response
