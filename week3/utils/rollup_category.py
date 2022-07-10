@@ -28,8 +28,7 @@ class Helper:
         -------
         pd.DataFrame
             | Query vs. category dataframe with an additional coloumn
-            tallying the number of unique queries associated with
-            each category
+            tallying the number of queries associated with each category
             Example:
             >>> df_query_vs_category.head(3)
 
@@ -39,11 +38,14 @@ class Helper:
                 columns=[COLNAMES.N_QUERIES_THIS_CATEGORY],
                 inplace=True,
             )
+        # NOTE: Duplicates are KEPT when tallying number of queries
+        #   associated with each category
         return df_query_vs_category.join(
             df_query_vs_category.groupby(COLNAMES.THIS_CATEGORY).agg(
                 **{
                     COLNAMES.N_QUERIES_THIS_CATEGORY: pd.NamedAgg(
-                        column=COLNAMES.QUERY, aggfunc=pd.Series.nunique
+                        column=COLNAMES.QUERY,
+                        aggfunc=pd.Series.count,
                     )
                 }
             ),

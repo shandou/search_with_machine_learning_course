@@ -57,18 +57,12 @@ for child in root:
 parents_df = pd.DataFrame(
     list(zip(categories, parents)), columns=["category", "parent"]
 )
-# CUSTOMIZE: Drop duplicated rows
-parents_df = parents_df.drop_duplicates().reset_index(drop=True)
 
 
 # Read the training data into pandas, only keeping queries with non-root categories in our category tree.
 df = pd.read_csv(queries_file_name)[["category", "query"]]
 df = df[df["category"].isin(categories)]
-# CUSTOMIZE: Drop duplicated rows
-logger.info("Query dataframe has %s rows before dropping duplicates", len(df))
-df = df.drop_duplicates().reset_index(drop=True)
-logger.info("Query dataframe has %s rows after dropping duplicates", len(df))
-
+# NOTE: Duplicated rows are preserved to reflect the true traffic!
 
 # IMPLEMENT ME: Convert queries to lowercase,
 #   and optionally implement other normalization, like stemming.
