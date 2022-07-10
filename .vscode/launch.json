@@ -12,16 +12,10 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            // "args": [
-            //     "--output",
-            //     "/workspace/datasets/fasttext/labeled_products.txt"
-            // ]
-            // "args": [
-            //     "--min_products",
-            //     "1"
-            // ]
             "args": [
-                "--synonyms",
+                "--min_queries",
+                // "1000"
+                "10000"
             ]
         },
         {
