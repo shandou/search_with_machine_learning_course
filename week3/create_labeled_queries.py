@@ -67,10 +67,7 @@ df = df.drop_duplicates().reset_index(drop=True)
 logger.info("Query dataframe has %s rows after dropping duplicates", len(df))
 
 
-# IMPLEMENT ME: Convert queries to lowercase, and optionally implement other normalization, like stemming.
-df["query"] = df["query"].apply(
-    lambda x: " ".join([stemmer.stem(token) for token in x.lower().split()])
-)
+df = normalize_query_multiprocessor(df)
 
 
 logger.info(
