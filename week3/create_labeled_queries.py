@@ -70,9 +70,13 @@ df = df.drop_duplicates().reset_index(drop=True)
 logger.info("Query dataframe has %s rows after dropping duplicates", len(df))
 
 
+# IMPLEMENT ME: Convert queries to lowercase,
+#   and optionally implement other normalization, like stemming.
 df = normalize_query_multiprocessor(df)
 
 
+# IMPLEMENT ME: Roll up categories to ancestors to
+#   satisfy the minimum number of queries per category.
 logger.info(
     "Query dataframe has %s unique categories before applying rollup",
     df[COLNAMES.THIS_CATEGORY].nunique(),
