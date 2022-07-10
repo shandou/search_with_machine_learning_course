@@ -13,7 +13,9 @@ general.add_argument(
     default=categoriesFilename,
     help="The full path to the filename containing the categories",
 )
-general.add_argument("--max_depth", default=0, type=int, help="the file to output to")
+general.add_argument(
+    "--max_depth", default=0, type=int, help="the file to output to"
+)
 
 args = parser.parse_args()
 
