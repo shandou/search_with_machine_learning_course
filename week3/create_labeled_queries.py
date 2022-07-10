@@ -8,6 +8,8 @@ import nltk
 import numpy as np
 import pandas as pd
 
+from utils.rollup_category import recursive_rollup_category
+
 stemmer = nltk.stem.PorterStemmer()
 
 categories_file_name = r"/workspace/datasets/product_data/categories/categories_0001_abcat0010000_to_pcmcat99300050000.xml"
@@ -22,7 +24,9 @@ general.add_argument(
     default=1,
     help="The minimum number of queries per category label (default is 1)",
 )
-general.add_argument("--output", default=output_file_name, help="the file to output to")
+general.add_argument(
+    "--output", default=output_file_name, help="the file to output to"
+)
 
 args = parser.parse_args()
 output_file_name = args.output
@@ -50,18 +54,30 @@ for child in root:
 parents_df = pd.DataFrame(
     list(zip(categories, parents)), columns=["category", "parent"]
 )
+# CUSTOMIZE: Drop duplicated rows
+parents_df = parents_df.drop_duplicates().reset_index(drop=True)
+
 
 # Read the training data into pandas, only keeping queries with non-root categories in our category tree.
 df = pd.read_csv(queries_file_name)[["category", "query"]]
 df = df[df["category"].isin(categories)]
+# CUSTOMIZE: Drop duplicated rows
+df = df.drop_duplicates().reset_index(drop=True)
+
 
 # IMPLEMENT ME: Convert queries to lowercase, and optionally implement other normalization, like stemming.
+df["query"] = df["query"].apply(
+    lambda x: " ".join([stemmer.stem(token) for token in x.lower().split()])
+)
+
 
 # IMPLEMENT ME: Roll up categories to ancestors to satisfy the minimum number of queries per category.
+df = recursive_rollup_category(
+    df, df_category_tree=parents_df, min_n_queries_this_category=min_queries
+)
 
 # Create labels in fastText format.
 df["label"] = "__label__" + df["category"]
-
 # Output labeled query data as a space-separated file, making sure that every category is in the taxonomy.
 df = df[df["category"].isin(categories)]
 df["output"] = df["label"] + " " + df["query"]
