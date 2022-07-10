@@ -1,0 +1,39 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "python": "${command:python.interpreterPath}",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            // "args": [
+            //     "--output",
+            //     "/workspace/datasets/fasttext/labeled_products.txt"
+            // ]
+            // "args": [
+            //     "--min_products",
+            //     "1"
+            // ]
+            "args": [
+                "--synonyms",
+            ]
+        },
+        {
+            "type": "bashdb",
+            "request": "launch",
+            "name": "Bash-Debug (simplest configuration)",
+            "program": "${file}",
+            "args": [
+                "-r",
+                "-p",
+                "/workspace/search_with_machine_learning_course/week2/conf/bbuy_products.json"
+            ]
+        }
+    ]
+}
