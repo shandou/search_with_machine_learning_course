@@ -62,7 +62,9 @@ parents_df = parents_df.drop_duplicates().reset_index(drop=True)
 df = pd.read_csv(queries_file_name)[["category", "query"]]
 df = df[df["category"].isin(categories)]
 # CUSTOMIZE: Drop duplicated rows
+logger.info("Query dataframe has %s rows before dropping duplicates", len(df))
 df = df.drop_duplicates().reset_index(drop=True)
+logger.info("Query dataframe has %s rows after dropping duplicates", len(df))
 
 
 # IMPLEMENT ME: Convert queries to lowercase, and optionally implement other normalization, like stemming.
@@ -71,10 +73,21 @@ df["query"] = df["query"].apply(
 )
 
 
-# IMPLEMENT ME: Roll up categories to ancestors to satisfy the minimum number of queries per category.
+logger.info(
+    "Query dataframe has %s unique categories before applying rollup",
+    df[COLNAMES.THIS_CATEGORY].nunique(),
+)
+logger.info(
+    "Apply category rollup with min_n_queries_this_category = %s", min_queries
+)
 df = recursive_rollup_category(
     df, df_category_tree=parents_df, min_n_queries_this_category=min_queries
 )
+logger.info(
+    "Query dataframe has %s unique categories after applying rollup",
+    df[COLNAMES.THIS_CATEGORY].nunique(),
+)
+
 
 # Create labels in fastText format.
 df["label"] = "__label__" + df["category"]
