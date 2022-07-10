@@ -8,10 +8,9 @@
 
 | min_n_queries_per_category | n_unique_categories |
 | :------------------------- | :------------------ |
-| 1000                       | 60                  |
-| 10000                      | 3                   |
-
-TODO
+| 1                          | 1486                |
+| 1000                       | 124                 |
+| 10000                      | 8                   |
 
 **1b. For query classification: What were the best values you achieved for R@1, R@3, and R@5? You should have tried at least a few different models, varying the minimum number of queries per category, as well as trying different fastText parameters or query normalization. Report at least 2 of your runs.**
 
