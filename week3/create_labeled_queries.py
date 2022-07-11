@@ -4,7 +4,7 @@ import os
 import xml.etree.ElementTree as ET
 
 # Useful if you want to perform stemming.
-import nltk
+# import nltk
 import numpy as np
 import pandas as pd
 
@@ -13,7 +13,7 @@ from utils.constants import COLNAMES
 from utils.normalize_query import normalize_query_multiprocessor
 from utils.rollup_category import recursive_rollup_category
 
-stemmer = nltk.stem.PorterStemmer()
+# stemmer = nltk.stem.PorterStemmer()
 
 categories_file_name = r"/workspace/datasets/product_data/categories/categories_0001_abcat0010000_to_pcmcat99300050000.xml"
 
