@@ -45,20 +45,37 @@ tree = ET.parse(categories_file_name)
 root = tree.getroot()
 
 # Parse the category XML file to map each category id to its parent category id in a dataframe.
-categories = []
+categories, categories_names = [], []
 parents = []
 for child in root:
     id = child.find("id").text
     cat_path = child.find("path")
     cat_path_ids = [cat.find("id").text for cat in cat_path]
+    cat_path_names = [cat.find("name").text for cat in cat_path]
     leaf_id = cat_path_ids[-1]
+    leaf_name = cat_path_names[-1]
     if leaf_id != root_category_id:
         categories.append(leaf_id)
+        categories_names.append(leaf_name)
         parents.append(cat_path_ids[-2])
 parents_df = pd.DataFrame(
     list(zip(categories, parents)), columns=["category", "parent"]
 )
 
+# Add auxiliary CSV with category code vs. category name records
+# Example: $ head -n 4 product_category_names.csv
+#   category,category_name,label
+#   abcat0010000,Gift Center,__label__abcat0010000
+#   abcat0011000,Her,__label__abcat0011000
+#   abcat0011001,Leisure Gifts,__label__abcat0011001
+categories_df = pd.DataFrame(
+    list(zip(categories, categories_names)),
+    columns=["category", "category_name"],
+)
+categories_df["label"] = "__label__" + categories_df["category"]
+categories_df.to_csv(
+    "/workspace/datasets/fasttext/product_category_names.csv", index=False
+)
 
 # Read the training data into pandas, only keeping queries with non-root categories in our category tree.
 df = pd.read_csv(queries_file_name)[["category", "query"]]
