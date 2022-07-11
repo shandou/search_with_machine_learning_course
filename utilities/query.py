@@ -1,14 +1,19 @@
 # A simple client for querying driven by user input on the command line.  Has hooks for the various
 # weeks (e.g. query understanding).  See the main section at the bottom of the file
 import argparse
+
 # import fileinput
 import json
 import logging
 import os
+import subprocess
 import warnings
 from getpass import getpass
+from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import urljoin
 
+import fasttext
+import numpy as np
 import pandas as pd
 from opensearchpy import OpenSearch
 
@@ -17,6 +22,11 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(format="%(levelname)s:%(message)s")
+
+# Constant: Path to the trained query classifier
+#   min_queries = 10_000, lr = 0.5, epoch = 25
+CLASSIFIER_PATH: str = "/workspace/datasets/fasttext/query_classifier.bin"
+CLASSNAME_FILE: str = "/workspace/datasets/fasttext/product_category_names.csv"
 
 # expects clicks and impressions to be in the row
 def create_prior_queries_from_group(
@@ -59,6 +69,59 @@ def create_prior_queries(
     return click_prior_query
 
 
+def predict_query_category(
+    user_query: str, min_class_proba: float = 0.5
+) -> Union[None, List[str]]:
+    """Use query classifier (week3 project level1) to predict category id
+
+    Parameters
+    ----------
+    user_query : str
+        | Search query entered by user
+    min_class_proba : float, optional, default=0.5
+        | Minimum score for the classification results to be useable for
+        subsequent search
+
+    Returns
+    -------
+    Union[None, List[str]]
+        | List of predicted category ids.
+        None indicates no useable category id;
+        | Example: ['cat02015']
+
+    """
+
+    predicted_category_ids: Union[None, List[str]] = None
+
+    model: fasttext.FastText._FastText = fasttext.load_model(CLASSIFIER_PATH)
+    predictions: Tuple[Tuple[str, ...], np.ndarray] = model.predict(user_query)
+    ids_filtered: np.ndarray = np.argwhere(
+        predictions[1] > min_class_proba
+    ).squeeze()
+
+    if ids_filtered.size > 0:
+        labels_filtered = np.array(predictions[0])[ids_filtered]
+
+        if isinstance(labels_filtered, str):
+            labels_filtered = [labels_filtered]
+
+        predicted_category_ids = [
+            label.replace("__label__", "") for label in labels_filtered
+        ]
+        predicted_category_names: List[str] = [
+            subprocess.check_output(["grep", category_id, CLASSNAME_FILE])
+            .decode("utf-8")
+            .split(",")[1]
+            for category_id in predicted_category_ids
+        ]
+        logger.info("Classifier output is: %s", predictions)
+        logger.info(
+            "Corresponding category name is: %s", predicted_category_names
+        )
+
+    return predicted_category_ids
+
+
 # Hardcoded query here.  Better to use search templates or other query config.
 def create_query(
     user_query,
@@ -78,6 +141,14 @@ def create_query(
         name_field: str = "name.synonyms"
     else:
         name_field = "name"
+
+    if filters is not None:
+        print(
+            "==================================\n",
+            "Classifier-based filter setting is:\n",
+            "==================================\n",
+        )
+        print(json.dumps(filters, indent=4))
 
     query_obj = {
         "size": size,
@@ -214,23 +285,41 @@ def search(
     sort="_score",
     sortDir="desc",
     use_synonyms: bool = False,
+    use_classifier: bool = False,
 ):
     #### W3: classify the query
     #### W3: create filters and boosts
     # Note: you may also want to modify the `create_query` method above
+    filters: Union[None, Dict[str, Any]] = None
+    if use_classifier:
+        pred_category_ids: Union[None, List[str]] = predict_query_category(
+            user_query
+        )
+        if pred_category_ids is not None:
+            filters = {
+                "multi_match": {
+                    "query": ",".join(pred_category_ids),
+                    "fields": ["categoryLeaf", "categoryPathIds"],
+                }
+            }
+
     query_obj = create_query(
         user_query,
         click_prior_query=None,
-        filters=None,
+        filters=filters,
         sort=sort,
         sortDir=sortDir,
-        source=["name", "shortDescription"],
+        source=["name", "shortDescription", "categoryPath", "categoryPathIds"],
         use_synonyms=use_synonyms,
     )
     logging.info(query_obj)
     response = client.search(query_obj, index=index)
-    if response and response["hits"]["hits"] and len(response["hits"]["hits"]) > 0:
-        hits = response["hits"]["hits"]
+    if (
+        response
+        and response["hits"]["hits"]
+        and len(response["hits"]["hits"]) > 0
+    ):
+        # hits = response["hits"]["hits"]
         print(json.dumps(response, indent=2))
 
 
@@ -267,7 +356,15 @@ if __name__ == "__main__":
             "If this is set, name.synonyms will replace name in search query"
         ),
     )
-
+    general.add_argument(
+        "--classifier",
+        action="store_true",
+        help=(
+            "Boolean toggle indicating of query classifier model will be used. "
+            "If this is set, classification results will be used to "
+            "compose opensearch query"
+        ),
+    )
     args = parser.parse_args()
 
     if len(vars(args)) == 0:
@@ -300,6 +397,7 @@ if __name__ == "__main__":
     )
     index_name = args.index
     use_synonyms: bool = args.synonyms
+    use_classifier: bool = args.classifier
     query_prompt = "\nEnter your query (type 'Exit' to exit or hit ctrl-c):"
     while True:
         try:
@@ -315,6 +413,7 @@ if __name__ == "__main__":
                     user_query=query,
                     index=index_name,
                     use_synonyms=use_synonyms,
+                    use_classifier=use_classifier,
                 )
 
     # for line in fileinput.input():
