@@ -145,13 +145,9 @@ def recursive_rollup_category(
     if len(df_rollup_candidates) == 0:
         # If no records require rolling up,
         #   the query vs. category dataframe is ready as output
-        return (
-            df_query_vs_category.drop(
-                columns=[COLNAMES.N_QUERIES_THIS_CATEGORY], errors="ignore"
-            )
-            .drop_duplicates()
-            .reset_index(drop=True)
-        )
+        return df_query_vs_category.drop(
+            columns=[COLNAMES.N_QUERIES_THIS_CATEGORY], errors="ignore"
+        ).reset_index(drop=True)
 
     # 3. Keep track of records that don't require rollup
     df_unchanged: pd.DataFrame = df_query_vs_category.query(
