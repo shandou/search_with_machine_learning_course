@@ -8,14 +8,22 @@ import logging
 import os
 import subprocess
 import warnings
+from base64 import encode
 from getpass import getpass
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urljoin
+from xml.etree.ElementTree import tostringlist
 
 import fasttext
 import numpy as np
+import numpy.typing as np_typing
 import pandas as pd
+import sentence_transformers
 from opensearchpy import OpenSearch
+from sentence_transformers import SentenceTransformer
+
+PRETRAINED_MODEL_NAME: str = "all-MiniLM-L6-v2"
+
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -120,6 +128,66 @@ def predict_query_category(
         )
 
     return predicted_category_ids
+
+
+def create_vector_query(
+    user_query: str, size: int = 10, source: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    """Create query JSON for performing k-NN vector search
+
+    Parameters
+    ----------
+    user_query : str
+        Search query issued by user
+    size : int, optional
+        Maximum return size, by default 10
+    source : Optional[List[str]], optional
+        List of index fields being kept in search results, by default None
+
+    Returns
+    -------
+    Dict[str, Any]
+        Query JSON specific to k-NN vector search
+
+    References
+    -----------
+    | Query object syntax follows examples provided by OpenSearch documentation:
+    https://opensearch.org/docs/latest/search-plugins/knn/knn-score-script/
+
+    """
+    # Load pretrained sentence embedding model
+    model: sentence_transformers.SentenceTransformer = SentenceTransformer(
+        PRETRAINED_MODEL_NAME
+    )
+
+    # Create query embedding
+    query_embedding: np_typing.NDArray[np.float32] = model.encode([user_query])
+
+    # Use query embedding (in the form of single-element array) to
+    #   create OpenSearch query JSON
+    # TODO: Play with filtering and sorting
+    query_obj: Dict[str, Any] = {
+        "size": size,
+        "query": {
+            "script_score": {
+                "query": {"match_all": {}},
+                "script": {
+                    "source": "knn_score",
+                    "lang": "knn",
+                    "params": {
+                        "field": "name_embedding",
+                        "query_value": query_embedding[0].tolist(),
+                        "space_type": "cosinesimil",
+                    },
+                },
+            }
+        },
+    }
+
+    if source is not None:  # otherwise use the default and retrieve all source
+        query_obj["_source"] = source
+
+    return query_obj
 
 
 # Hardcoded query here.  Better to use search templates or other query config.
@@ -261,7 +329,10 @@ def create_query(
         query_obj["query"]["function_score"]["query"]["bool"]["should"].append(
             {
                 "query_string": {
-                    # This may feel like cheating, but it's really not, esp. in ecommerce where you have all this prior data,  You just can't let the test clicks leak in, which is why we split on date
+                    # This may feel like cheating, but it's really not,
+                    # esp. in ecommerce where you have all this prior data,
+                    # You just can't let the test clicks leak in,
+                    # which is why we split on date
                     "query": click_prior_query,
                     "fields": ["_id"],
                 }
@@ -286,6 +357,7 @@ def search(
     sortDir="desc",
     use_synonyms: bool = False,
     use_classifier: bool = False,
+    use_vector_search: bool = False,
 ):
     #### W3: classify the query
     #### W3: create filters and boosts
@@ -303,16 +375,26 @@ def search(
                 }
             }
 
-    query_obj = create_query(
-        user_query,
-        click_prior_query=None,
-        filters=filters,
-        sort=sort,
-        sortDir=sortDir,
-        source=["name", "shortDescription", "categoryPath", "categoryPathIds"],
-        use_synonyms=use_synonyms,
-    )
+    SOURCE_FIELDS: List[str] = [
+        "name",
+        "shortDescription",
+        "categoryPath",
+        "categoryPathIds",
+    ]
+    if use_vector_search:
+        query_obj = create_vector_query(user_query, source=SOURCE_FIELDS)
+    else:
+        query_obj = create_query(
+            user_query,
+            click_prior_query=None,
+            filters=filters,
+            sort=sort,
+            sortDir=sortDir,
+            source=SOURCE_FIELDS,
+            use_synonyms=use_synonyms,
+        )
     logging.info(query_obj)
+
     response = client.search(query_obj, index=index)
     if (
         response
@@ -346,7 +428,11 @@ if __name__ == "__main__":
     )
     general.add_argument(
         "--user",
-        help="The OpenSearch admin.  If this is set, the program will prompt for password too. If not set, use default of admin/admin",
+        help=(
+            "The OpenSearch admin. "
+            "If this is set, the program will prompt for password too. "
+            "If not set, use default of admin/admin"
+        ),
     )
     general.add_argument(
         "--synonyms",
@@ -360,9 +446,18 @@ if __name__ == "__main__":
         "--classifier",
         action="store_true",
         help=(
-            "Boolean toggle indicating of query classifier model will be used. "
+            "Boolean toggle indicating if query classifier model will be used. "
             "If this is set, classification results will be used to "
             "compose opensearch query"
+        ),
+    )
+    general.add_argument(
+        "--vector",
+        action="store_true",
+        help=(
+            "Boolean toggle indicating if vector search will be used. "
+            "If this is set, ``create_vector_query`` "
+            "(instead of ``create_query``) will be used to create query JSON."
         ),
     )
     args = parser.parse_args()
@@ -398,6 +493,8 @@ if __name__ == "__main__":
     index_name = args.index
     use_synonyms: bool = args.synonyms
     use_classifier: bool = args.classifier
+    use_vector_search: bool = args.vector
+
     query_prompt = "\nEnter your query (type 'Exit' to exit or hit ctrl-c):"
     while True:
         try:
@@ -414,6 +511,7 @@ if __name__ == "__main__":
                     index=index_name,
                     use_synonyms=use_synonyms,
                     use_classifier=use_classifier,
+                    use_vector_search=use_vector_search,
                 )
 
     # for line in fileinput.input():
