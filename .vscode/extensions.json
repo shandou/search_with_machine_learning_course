@@ -2,6 +2,8 @@
     "recommendations": [
         "kevinrose.vsc-python-indent",
         "gruntfuggly.todo-tree",
-        "scottsullivan.vs-workspace-themes"
+        "scottsullivan.vs-workspace-themes",
+        "ms-python.python",
+        "njpwerner.autodocstring"
     ]
 }
