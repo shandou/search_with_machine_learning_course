@@ -13,9 +13,13 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--source_dir",
-                "/workspace/datasets/product_data/products"
+                "--classifier",
             ]
+            // "args": [
+            //     "--min_queries",
+            //     // "1000"
+            //     "10000"
+            // ]
         },
         {
             "type": "bashdb",
