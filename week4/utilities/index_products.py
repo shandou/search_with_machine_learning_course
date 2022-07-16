@@ -261,7 +261,9 @@ def main(source_dir: str, index_name: str, reduced: bool):
         docs_indexed += index_file(file, index_name, reduced)
 
     finish = perf_counter()
-    logger.info(f"Done. Total docs: {docs_indexed} in {(finish - start)/60} minutes")
+    logger.info(
+        f"Done. Total docs: {docs_indexed} in {(finish - start)/60} minutes"
+    )
 
 
 if __name__ == "__main__":
