@@ -8,6 +8,8 @@ from time import perf_counter
 
 import click
 import fasttext
+import numpy as np
+import numpy.typing as np_typing
 import opensearchpy
 import requests
 from lxml import etree
@@ -203,10 +205,24 @@ def index_file(file, index_name, reduced=False):
             or "Movies & Music" in doc["categoryPath"]
         ):
             continue
-        docs.append({"_index": index_name, "_id": doc["sku"][0], "_source": doc})
+        docs.append(
+            {"_index": index_name, "_id": doc["sku"][0], "_source": doc}
+        )
+        names.append(doc["name"][0])
         # docs.append({'_index': index_name, '_source': doc})
         docs_indexed += 1
         if docs_indexed % 200 == 0:
+
+            # Generate embeddings for the "name" field in batch
+            #   (200 records per batch)
+            names_embeddings: np_typing.NDArray[np.float32] = model.encode(
+                names
+            )
+
+            # Add name_embedding as an additional field
+            for i, name_embedding in enumerate(names_embeddings):
+                docs[i]["_source"].update({"name_embedding": name_embedding})
+
             logger.info("Indexing")
             bulk(client, docs, request_timeout=60)
             logger.info(f"{docs_indexed} documents indexed")
