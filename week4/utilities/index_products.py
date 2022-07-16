@@ -167,12 +167,14 @@ def get_opensearch():
     return client
 
 
-def index_file(file, index_name, reduced=False):
+def index_file(file, index_name, reduced=False) -> int:
     logger.info("Creating Model")
+
     # IMPLEMENT ME: instantiate the sentence transformer model!
     model: sentence_transformers.SentenceTransformer = SentenceTransformer(
         PRETRAINED_MODEL_NAME
     )
+
     logger.info("Ready to index")
 
     docs_indexed = 0
