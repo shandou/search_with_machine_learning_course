@@ -12,9 +12,12 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
+            // "args": [
+            //     "--source_dir",
+            //     "/workspace/datasets/product_data/products"
+            // ]
             "args": [
-                "--source_dir",
-                "/workspace/datasets/product_data/products"
+                "--vector",
             ]
         },
         {
